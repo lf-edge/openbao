@@ -67,7 +67,7 @@ func TestCertBundleConversion(t *testing.T) {
 
 		err = compareCertBundleToParsedCertBundle(cbut, pcbut)
 		if err != nil {
-			t.Fatalf(err.Error())
+			t.Fatal(err.Error())
 		}
 	}
 }
@@ -131,7 +131,7 @@ func TestCertBundleParsing(t *testing.T) {
 		err = compareCertBundleToParsedCertBundle(cbut, pcbut)
 		if err != nil {
 			t.Logf("Error occurred with bundle %d in test array (index %d).\n", i+1, i)
-			t.Fatalf(err.Error())
+			t.Fatal(err.Error())
 		}
 
 		dataMap := structs.New(cbut).Map()
@@ -143,7 +143,7 @@ func TestCertBundleParsing(t *testing.T) {
 		err = compareCertBundleToParsedCertBundle(cbut, pcbut)
 		if err != nil {
 			t.Logf("Error occurred with bundle %d in test array (index %d).\n", i+1, i)
-			t.Fatalf(err.Error())
+			t.Fatal(err.Error())
 		}
 
 		pcbut, err = ParsePEMBundle(cbut.ToPEMBundle())
@@ -154,7 +154,7 @@ func TestCertBundleParsing(t *testing.T) {
 		err = compareCertBundleToParsedCertBundle(cbut, pcbut)
 		if err != nil {
 			t.Logf("Error occurred with bundle %d in test array (index %d).\n", i+1, i)
-			t.Fatalf(err.Error())
+			t.Fatal(err.Error())
 		}
 	}
 }
@@ -280,7 +280,7 @@ func TestCSRBundleConversion(t *testing.T) {
 
 		err = compareCSRBundleToParsedCSRBundle(csrbut, pcsrbut)
 		if err != nil {
-			t.Fatalf(err.Error())
+			t.Fatal(err.Error())
 		}
 
 		csrbut, err = pcsrbut.ToCSRBundle()
@@ -290,7 +290,7 @@ func TestCSRBundleConversion(t *testing.T) {
 
 		err = compareCSRBundleToParsedCSRBundle(csrbut, pcsrbut)
 		if err != nil {
-			t.Fatalf(err.Error())
+			t.Fatal(err.Error())
 		}
 	}
 }

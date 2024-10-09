@@ -3670,7 +3670,7 @@ func (ts *TokenStore) tokenStoreRoleCreateUpdate(ctx context.Context, req *logic
 
 	// Next parse token fields from the helper
 	if err := entry.ParseTokenFields(req, data); err != nil {
-		return logical.ErrorResponse(fmt.Errorf("error parsing role fields: %w", err).Error()), nil
+		return logical.ErrorResponse(fmt.Sprintf("error parsing role fields: %v", err)), nil
 	}
 
 	entry.TokenType = oldEntryTokenType
@@ -3723,7 +3723,7 @@ func (ts *TokenStore) tokenStoreRoleCreateUpdate(ctx context.Context, req *logic
 		if ok {
 			boundCIDRs, err := parseutil.ParseAddrs(boundCIDRsRaw.([]string))
 			if err != nil {
-				return logical.ErrorResponse(fmt.Errorf("error parsing bound_cidrs: %w", err).Error()), nil
+				return logical.ErrorResponse(fmt.Sprintf("error parsing bound_cidrs: %v", err)), nil
 			}
 			entry.BoundCIDRs = boundCIDRs
 			entry.TokenBoundCIDRs = entry.BoundCIDRs

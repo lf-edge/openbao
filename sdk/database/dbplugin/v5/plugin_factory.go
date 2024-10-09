@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/errwrap"
 	log "github.com/hashicorp/go-hclog"
 	"github.com/openbao/openbao/sdk/v2/helper/consts"
 	"github.com/openbao/openbao/sdk/v2/helper/pluginutil"
@@ -37,7 +36,7 @@ func PluginFactoryVersion(ctx context.Context, pluginName string, pluginVersion 
 		// from the pluginRunner. Then cast it to a Database.
 		dbRaw, err := pluginRunner.BuiltinFactory()
 		if err != nil {
-			return nil, errwrap.Wrapf("error initializing plugin: {{err}}", err)
+			return nil, fmt.Errorf("error initializing plugin: %w", err)
 		}
 
 		var ok bool
@@ -77,7 +76,7 @@ func PluginFactoryVersion(ctx context.Context, pluginName string, pluginVersion 
 
 	typeStr, err := db.Type()
 	if err != nil {
-		return nil, errwrap.Wrapf("error getting plugin type: {{err}}", err)
+		return nil, fmt.Errorf("error getting plugin type: %w", err)
 	}
 	logger.Debug("got database plugin instance", "type", typeStr)
 

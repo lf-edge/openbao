@@ -54,12 +54,6 @@ func denormalizeSerial(serial string) string {
 	return strings.ReplaceAll(strings.ToLower(serial), "-", ":")
 }
 
-func serialToBigInt(serial string) (*big.Int, bool) {
-	norm := normalizeSerial(serial)
-	hex := strings.ReplaceAll(norm, "-", "")
-	return big.NewInt(0).SetString(hex, 16)
-}
-
 func existingKeyRequested(input *inputBundle) bool {
 	return existingKeyRequestedFromFieldData(input.apiData)
 }
@@ -285,14 +279,4 @@ func addWarnings(resp *logical.Response, warnings []string) *logical.Response {
 		resp.AddWarning(warning)
 	}
 	return resp
-}
-
-// sliceToMapKey return a map that who's keys are entries in a map.
-func sliceToMapKey(s []string) map[string]struct{} {
-	var empty struct{}
-	myMap := make(map[string]struct{}, len(s))
-	for _, s := range s {
-		myMap[s] = empty
-	}
-	return myMap
 }

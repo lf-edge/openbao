@@ -21,7 +21,6 @@ import (
 )
 
 const (
-	bucketCount = 256
 	// StoragePackerBucketsPrefix is the default storage key prefix under which
 	// bucket data will be stored.
 	StoragePackerBucketsPrefix = "packer/buckets/"

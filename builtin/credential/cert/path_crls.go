@@ -15,7 +15,6 @@ import (
 
 	"github.com/fatih/structs"
 	"github.com/openbao/openbao/sdk/v2/framework"
-	"github.com/openbao/openbao/sdk/v2/helper/certutil"
 	"github.com/openbao/openbao/sdk/v2/logical"
 )
 
@@ -169,33 +168,6 @@ func (b *backend) findSerialInCRLs(serial *big.Int) map[string]RevokedSerialInfo
 		}
 	}
 	return ret
-}
-
-func parseSerialString(input string) (*big.Int, error) {
-	ret := &big.Int{}
-
-	switch {
-	case strings.Count(input, ":") > 0:
-		serialBytes := certutil.ParseHexFormatted(input, ":")
-		if serialBytes == nil {
-			return nil, fmt.Errorf("error parsing serial %q", input)
-		}
-		ret.SetBytes(serialBytes)
-	case strings.Count(input, "-") > 0:
-		serialBytes := certutil.ParseHexFormatted(input, "-")
-		if serialBytes == nil {
-			return nil, fmt.Errorf("error parsing serial %q", input)
-		}
-		ret.SetBytes(serialBytes)
-	default:
-		var success bool
-		ret, success = ret.SetString(input, 0)
-		if !success {
-			return nil, fmt.Errorf("error parsing serial %q", input)
-		}
-	}
-
-	return ret, nil
 }
 
 func (b *backend) pathCRLDelete(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {

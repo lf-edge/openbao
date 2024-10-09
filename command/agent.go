@@ -348,7 +348,7 @@ func (c *AgentCommand) Run(args []string) int {
 				}
 				s, err := file.NewFileSink(config)
 				if err != nil {
-					c.UI.Error(fmt.Errorf("error creating file sink: %w", err).Error())
+					c.UI.Error(fmt.Sprintf("error creating file sink: %v", err))
 					return 1
 				}
 				config.Sink = s

@@ -1142,7 +1142,7 @@ func (b *backend) pathRoleCreate(ctx context.Context, req *logical.Request, data
 	default:
 		_, err := parseOtherSANs(allowedOtherSANs)
 		if err != nil {
-			return logical.ErrorResponse(fmt.Errorf("error parsing allowed_other_sans: %w", err).Error()), nil
+			return logical.ErrorResponse(fmt.Sprintf("error parsing allowed_other_sans: %v", err)), nil
 		}
 	}
 	entry.AllowedOtherSANs = allowedOtherSANs
@@ -1344,7 +1344,7 @@ func (b *backend) pathRolePatch(ctx context.Context, req *logical.Request, data 
 		default:
 			_, err := parseOtherSANs(allowedOtherSANs)
 			if err != nil {
-				return logical.ErrorResponse(fmt.Errorf("error parsing allowed_other_sans: %w", err).Error()), nil
+				return logical.ErrorResponse(fmt.Sprintf("error parsing allowed_other_sans: %v", err)), nil
 			}
 		}
 		entry.AllowedOtherSANs = allowedOtherSANs

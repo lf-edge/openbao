@@ -13,7 +13,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/openbao/openbao/sdk/v2/helper/jsonutil"
 	"github.com/openbao/openbao/sdk/v2/helper/locksutil"
 	"github.com/openbao/openbao/sdk/v2/logical"
@@ -88,7 +87,7 @@ func NewLockManager(useCache bool, cacheSize int) (*LockManager, error) {
 	case cacheSize > 0:
 		newLRUCache, err := NewTransitLRU(cacheSize)
 		if err != nil {
-			return nil, errwrap.Wrapf("failed to create cache: {{err}}", err)
+			return nil, fmt.Errorf("failed to create cache: %w", err)
 		}
 		cache = newLRUCache
 	}
@@ -129,7 +128,7 @@ func (lm *LockManager) InitCache(cacheSize int) error {
 		case cacheSize > 0:
 			newLRUCache, err := NewTransitLRU(cacheSize)
 			if err != nil {
-				return errwrap.Wrapf("failed to create cache: {{err}}", err)
+				return fmt.Errorf("failed to create cache: %w", err)
 			}
 			lm.cache = newLRUCache
 		}
@@ -214,7 +213,7 @@ func (lm *LockManager) RestorePolicy(ctx context.Context, storage logical.Storag
 	if keyData.ArchivedKeys != nil {
 		err = keyData.Policy.storeArchive(ctx, storage, keyData.ArchivedKeys)
 		if err != nil {
-			return errwrap.Wrapf(fmt.Sprintf("failed to restore archived keys for key %q: {{err}}", name), err)
+			return fmt.Errorf("failed to restore archived keys for key %q: %w", name, err)
 		}
 	}
 
@@ -227,7 +226,7 @@ func (lm *LockManager) RestorePolicy(ctx context.Context, storage logical.Storag
 	// Restore the policy. This will also attempt to adjust the archive.
 	err = keyData.Policy.Persist(ctx, storage)
 	if err != nil {
-		return errwrap.Wrapf(fmt.Sprintf("failed to restore the policy %q: {{err}}", name), err)
+		return fmt.Errorf("failed to restore the policy %q: %w", name, err)
 	}
 
 	keyData.Policy.l = new(sync.RWMutex)
@@ -548,12 +547,12 @@ func (lm *LockManager) DeletePolicy(ctx context.Context, storage logical.Storage
 
 	err = storage.Delete(ctx, "policy/"+name)
 	if err != nil {
-		return errwrap.Wrapf(fmt.Sprintf("error deleting key %q: {{err}}", name), err)
+		return fmt.Errorf("error deleting key %q: %w", name, err)
 	}
 
 	err = storage.Delete(ctx, "archive/"+name)
 	if err != nil {
-		return errwrap.Wrapf(fmt.Sprintf("error deleting key %q archive: {{err}}", name), err)
+		return fmt.Errorf("error deleting key %q archive: %w", name, err)
 	}
 
 	return nil

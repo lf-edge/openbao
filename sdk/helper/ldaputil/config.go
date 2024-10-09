@@ -15,8 +15,6 @@ import (
 	"github.com/hashicorp/go-secure-stdlib/tlsutil"
 	"github.com/openbao/openbao/sdk/v2/framework"
 
-	"github.com/hashicorp/errwrap"
-
 	"github.com/go-ldap/ldap/v3"
 )
 
@@ -293,7 +291,7 @@ func NewConfigEntry(existing *ConfigEntry, d *framework.FieldData) (*ConfigEntry
 			// Validate the template before proceeding
 			_, err := template.New("queryTemplate").Parse(userfilter)
 			if err != nil {
-				return nil, errwrap.Wrapf("invalid userfilter: {{err}}", err)
+				return nil, fmt.Errorf("invalid userfilter: %w", err)
 			}
 		}
 
@@ -318,7 +316,7 @@ func NewConfigEntry(existing *ConfigEntry, d *framework.FieldData) (*ConfigEntry
 			// Validate the template before proceeding
 			_, err := template.New("queryTemplate").Parse(groupfilter)
 			if err != nil {
-				return nil, errwrap.Wrapf("invalid groupfilter: {{err}}", err)
+				return nil, fmt.Errorf("invalid groupfilter: %w", err)
 			}
 		}
 
@@ -337,7 +335,7 @@ func NewConfigEntry(existing *ConfigEntry, d *framework.FieldData) (*ConfigEntry
 		certificate := d.Get("certificate").(string)
 		if certificate != "" {
 			if err := validateCertificate([]byte(certificate)); err != nil {
-				return nil, errwrap.Wrapf("failed to parse server tls cert: {{err}}", err)
+				return nil, fmt.Errorf("failed to parse server tls cert: %w", err)
 			}
 		}
 		cfg.Certificate = certificate
@@ -355,7 +353,7 @@ func NewConfigEntry(existing *ConfigEntry, d *framework.FieldData) (*ConfigEntry
 
 	if cfg.ClientTLSCert != "" && cfg.ClientTLSKey != "" {
 		if _, err := tls.X509KeyPair([]byte(cfg.ClientTLSCert), []byte(cfg.ClientTLSKey)); err != nil {
-			return nil, errwrap.Wrapf("failed to parse client X509 key pair: {{err}}", err)
+			return nil, fmt.Errorf("failed to parse client X509 key pair: %w", err)
 		}
 	} else if cfg.ClientTLSCert != "" || cfg.ClientTLSKey != "" {
 		return nil, fmt.Errorf("both client_tls_cert and client_tls_key must be set")
@@ -549,12 +547,12 @@ func (c *ConfigEntry) Validate() error {
 	}
 	if c.Certificate != "" {
 		if err := validateCertificate([]byte(c.Certificate)); err != nil {
-			return errwrap.Wrapf("failed to parse server tls cert: {{err}}", err)
+			return fmt.Errorf("failed to parse server tls cert: %w", err)
 		}
 	}
 	if c.ClientTLSCert != "" && c.ClientTLSKey != "" {
 		if _, err := tls.X509KeyPair([]byte(c.ClientTLSCert), []byte(c.ClientTLSKey)); err != nil {
-			return errwrap.Wrapf("failed to parse client X509 key pair: {{err}}", err)
+			return fmt.Errorf("failed to parse client X509 key pair: %w", err)
 		}
 	}
 	return nil

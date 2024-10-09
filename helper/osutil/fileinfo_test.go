@@ -77,7 +77,7 @@ func TestCheckPathInfo(t *testing.T) {
 			t.Errorf("invalid result. expected error")
 		}
 		if !tc.expectError && err != nil {
-			t.Errorf(err.Error())
+			t.Error(err.Error())
 		}
 
 		err = os.RemoveAll("testFile")

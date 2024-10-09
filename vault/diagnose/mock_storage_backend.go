@@ -5,6 +5,7 @@ package diagnose
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -43,11 +44,11 @@ func (m mockStorageBackend) storageLogicGeneralInternal(op string) error {
 		(m.callType == timeoutCallDelete && op == deleteOp) {
 		time.Sleep(2 * time.Second)
 	} else if m.callType == errCallWrite && op == writeOp {
-		return fmt.Errorf(storageErrStringWrite)
+		return errors.New(storageErrStringWrite)
 	} else if m.callType == errCallDelete && op == deleteOp {
-		return fmt.Errorf(storageErrStringDelete)
+		return errors.New(storageErrStringDelete)
 	} else if m.callType == errCallRead && op == readOp {
-		return fmt.Errorf(storageErrStringRead)
+		return errors.New(storageErrStringRead)
 	}
 
 	return nil

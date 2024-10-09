@@ -27,7 +27,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/mitchellh/mapstructure"
 	"github.com/openbao/openbao/sdk/v2/helper/errutil"
 	"github.com/openbao/openbao/sdk/v2/helper/jsonutil"
@@ -909,7 +908,7 @@ func createCertificate(data *CreationBundle, randReader io.Reader, privateKeyGen
 	}
 
 	if err := HandleOtherSANs(certTemplate, data.Params.OtherSANs); err != nil {
-		return nil, errutil.InternalError{Err: errwrap.Wrapf("error marshaling other SANs: {{err}}", err).Error()}
+		return nil, errutil.InternalError{Err: fmt.Sprintf("error marshaling other SANs: %v", err)}
 	}
 
 	// Add this before calling addKeyUsages
@@ -1099,7 +1098,7 @@ func createCSR(data *CreationBundle, addBasicConstraints bool, randReader io.Rea
 	}
 
 	if err := HandleOtherCSRSANs(csrTemplate, data.Params.OtherSANs); err != nil {
-		return nil, errutil.InternalError{Err: errwrap.Wrapf("error marshaling other SANs: {{err}}", err).Error()}
+		return nil, errutil.InternalError{Err: fmt.Sprintf("error marshaling other SANs: %v", err)}
 	}
 
 	if addBasicConstraints {
@@ -1109,7 +1108,7 @@ func createCSR(data *CreationBundle, addBasicConstraints bool, randReader io.Rea
 		}
 		val, err := asn1.Marshal(basicConstraints{IsCA: true, MaxPathLen: -1})
 		if err != nil {
-			return nil, errutil.InternalError{Err: errwrap.Wrapf("error marshaling basic constraints: {{err}}", err).Error()}
+			return nil, errutil.InternalError{Err: fmt.Sprintf("error marshaling basic constraints: %v", err)}
 		}
 		ext := pkix.Extension{
 			Id:       ExtensionBasicConstraintsOID,
@@ -1242,7 +1241,7 @@ func signCertificate(data *CreationBundle, randReader io.Reader) (*ParsedCertBun
 	}
 
 	if err := HandleOtherSANs(certTemplate, data.Params.OtherSANs); err != nil {
-		return nil, errutil.InternalError{Err: errwrap.Wrapf("error marshaling other SANs: {{err}}", err).Error()}
+		return nil, errutil.InternalError{Err: fmt.Sprintf("error marshaling other SANs: %v", err)}
 	}
 
 	AddPolicyIdentifiers(data, certTemplate)

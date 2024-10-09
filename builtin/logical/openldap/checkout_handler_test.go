@@ -5,7 +5,6 @@ package openldap
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"testing"
 
@@ -53,7 +52,7 @@ func TestCheckOutHandlerStorageLayer(t *testing.T) {
 		t.Fatal("storedCheckOut should not be nil")
 	}
 	if !reflect.DeepEqual(checkOut, storedCheckOut) {
-		t.Fatalf(fmt.Sprintf(`expected %+v to be equal to %+v`, checkOut, storedCheckOut))
+		t.Fatalf(`expected %+v to be equal to %+v`, checkOut, storedCheckOut)
 	}
 
 	// If we try to check something out that's already checked out, we should

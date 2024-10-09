@@ -363,8 +363,7 @@ func TestUpdateUser_newDB(t *testing.T) {
 		updateUserErr   error
 		updateUserCalls int
 
-		expectedResp v5.UpdateUserResponse
-		expectErr    bool
+		expectErr bool
 	}
 
 	tests := map[string]testCase{

@@ -31,15 +31,9 @@ package raft
 import (
 	"bufio"
 	"encoding/binary"
-	"errors"
 	"io"
 
 	"github.com/golang/protobuf/proto"
-)
-
-var (
-	errSmallBuffer = errors.New("Buffer Too Small")
-	errLargeValue  = errors.New("Value is Larger than 64 bits")
 )
 
 func NewDelimitedWriter(w io.Writer) WriteCloser {

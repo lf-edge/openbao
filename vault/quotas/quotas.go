@@ -73,8 +73,6 @@ const (
 	LeaseActionAllow
 )
 
-type leaseWalkFunc func(context.Context, func(request *Request) bool) error
-
 // String converts each quota type into its string equivalent value
 func (q Type) String() string {
 	switch q {

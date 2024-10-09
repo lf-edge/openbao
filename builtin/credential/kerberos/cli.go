@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/jcmturner/gokrb5/v8/client"
 	"github.com/jcmturner/gokrb5/v8/config"
 	"github.com/jcmturner/gokrb5/v8/keytab"
@@ -165,7 +164,7 @@ type LoginCfg struct {
 func GetAuthHeaderVal(loginCfg *LoginCfg) (string, error) {
 	kt, err := keytab.Load(loginCfg.KeytabPath)
 	if err != nil {
-		return "", errwrap.Wrapf("couldn't load keytab: {{err}}", err)
+		return "", fmt.Errorf("couldn't load keytab: %w", err)
 	}
 
 	if loginCfg.RemoveInstanceName {
@@ -174,7 +173,7 @@ func GetAuthHeaderVal(loginCfg *LoginCfg) (string, error) {
 
 	krb5Conf, err := config.Load(loginCfg.Krb5ConfPath)
 	if err != nil {
-		return "", errwrap.Wrapf("couldn't parse krb5Conf: {{err}}", err)
+		return "", fmt.Errorf("couldn't parse krb5Conf: %w", err)
 	}
 
 	settings := []func(*client.Settings){
@@ -186,23 +185,23 @@ func GetAuthHeaderVal(loginCfg *LoginCfg) (string, error) {
 
 	cl := client.NewWithKeytab(loginCfg.Username, loginCfg.Realm, kt, krb5Conf, settings...)
 	if err := cl.Login(); err != nil {
-		return "", errwrap.Wrapf("couldn't log in: {{err}}", err)
+		return "", fmt.Errorf("couldn't log in: %w", err)
 	}
 	defer cl.Destroy()
 
 	spnegoClient := spnego.SPNEGOClient(cl, loginCfg.Service)
 	if err := spnegoClient.AcquireCred(); err != nil {
-		return "", errwrap.Wrapf("couldn't acquire client credential: {{err}}", err)
+		return "", fmt.Errorf("couldn't acquire client credential: %w", err)
 	}
 
 	spnegoToken, err := spnegoClient.InitSecContext()
 	if err != nil {
-		return "", errwrap.Wrapf("couldn't initialize context: {{err}}", err)
+		return "", fmt.Errorf("couldn't initialize context: %w", err)
 	}
 
 	marshalledToken, err := spnegoToken.Marshal()
 	if err != nil {
-		return "", errwrap.Wrapf("couldn't marshal SPNEGO: {{err}}", err)
+		return "", fmt.Errorf("couldn't marshal SPNEGO: %w", err)
 	}
 	authHeaderVal := "Negotiate " + base64.StdEncoding.EncodeToString(marshalledToken)
 	return authHeaderVal, nil

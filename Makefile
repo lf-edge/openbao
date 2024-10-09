@@ -154,19 +154,19 @@ ci-vet-codechecker: ci-bootstrap tools/codechecker/.bin/codechecker prep
 # lint runs vet plus a number of other checkers, it is more comprehensive, but louder
 lint:
 	@$(GO_CMD) list -f '{{.Dir}}' ./... | grep -v /vendor/ \
-		| xargs golangci-lint run; if [ $$? -eq 1 ]; then \
+		| xargs golangci-lint run --timeout 10m; if [ $$? -eq 1 ]; then \
 			echo ""; \
 			echo "Lint found suspicious constructs. Please check the reported constructs"; \
 			echo "and fix them if necessary before submitting the code for reviewal."; \
 		fi
 	@$(GO_CMD) list -f '{{.Dir}}' github.com/openbao/openbao/api/v2/... | grep -v /vendor/ \
-		| xargs golangci-lint run; if [ $$? -eq 1 ]; then \
+		| xargs golangci-lint run --timeout 10m; if [ $$? -eq 1 ]; then \
 			echo ""; \
 			echo "Lint found suspicious constructs. Please check the reported constructs"; \
 			echo "and fix them if necessary before submitting the code for reviewal."; \
 		fi
 	@$(GO_CMD) list -f '{{.Dir}}' github.com/openbao/openbao/sdk/v2/... | grep -v /vendor/ \
-		| xargs golangci-lint run; if [ $$? -eq 1 ]; then \
+		| xargs golangci-lint run --timeout 10m; if [ $$? -eq 1 ]; then \
 			echo ""; \
 			echo "Lint found suspicious constructs. Please check the reported constructs"; \
 			echo "and fix them if necessary before submitting the code for reviewal."; \
@@ -174,7 +174,7 @@ lint:
 
 # for ci jobs, runs lint against the changed packages in the commit
 ci-lint:
-	@golangci-lint run --deadline 10m --new-from-rev=HEAD~
+	@golangci-lint run --timeout 10m --new-from-rev=HEAD~
 
 # prep runs `go generate` to build the dynamically generated
 # source files.

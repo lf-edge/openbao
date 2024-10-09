@@ -10,7 +10,6 @@ import (
 
 	"google.golang.org/grpc"
 
-	"github.com/hashicorp/errwrap"
 	log "github.com/hashicorp/go-hclog"
 	plugin "github.com/hashicorp/go-plugin"
 	"github.com/openbao/openbao/sdk/v2/helper/consts"
@@ -96,7 +95,7 @@ func PluginFactoryVersion(ctx context.Context, pluginName string, pluginVersion 
 		// from the pluginRunner. Then cast it to a Database.
 		dbRaw, err := pluginRunner.BuiltinFactory()
 		if err != nil {
-			return nil, errwrap.Wrapf("error initializing plugin: {{err}}", err)
+			return nil, fmt.Errorf("error initializing plugin: %w", err)
 		}
 
 		var ok bool
@@ -125,7 +124,7 @@ func PluginFactoryVersion(ctx context.Context, pluginName string, pluginVersion 
 
 	typeStr, err := db.Type()
 	if err != nil {
-		return nil, errwrap.Wrapf("error getting plugin type: {{err}}", err)
+		return nil, fmt.Errorf("error getting plugin type: %w", err)
 	}
 
 	// Wrap with metrics middleware

@@ -6,10 +6,9 @@ package framework
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"strings"
 	"text/template"
-
-	"github.com/hashicorp/errwrap"
 )
 
 func executeTemplate(tpl string, data interface{}) (string, error) {
@@ -21,13 +20,13 @@ func executeTemplate(tpl string, data interface{}) (string, error) {
 	// Parse the help template
 	t, err := template.New("root").Funcs(funcs).Parse(tpl)
 	if err != nil {
-		return "", errwrap.Wrapf("error parsing template: {{err}}", err)
+		return "", fmt.Errorf("error parsing template: %w", err)
 	}
 
 	// Execute the template and store the output
 	var buf bytes.Buffer
 	if err := t.Execute(&buf, data); err != nil {
-		return "", errwrap.Wrapf("error executing template: {{err}}", err)
+		return "", fmt.Errorf("error executing template: %w", err)
 	}
 
 	return strings.TrimSpace(buf.String()), nil

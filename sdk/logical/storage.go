@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-hclog"
 	"github.com/openbao/openbao/sdk/v2/helper/jsonutil"
 )
@@ -53,7 +52,7 @@ func (e *StorageEntry) DecodeJSON(out interface{}) error {
 func StorageEntryJSON(k string, v interface{}) (*StorageEntry, error) {
 	encodedBytes, err := jsonutil.EncodeJSON(v)
 	if err != nil {
-		return nil, errwrap.Wrapf("failed to encode storage entry: {{err}}", err)
+		return nil, fmt.Errorf("failed to encode storage entry: %w", err)
 	}
 
 	return &StorageEntry{
@@ -78,7 +77,7 @@ func ScanView(ctx context.Context, view ClearableView, cb func(path string)) err
 		// List the contents
 		contents, err := view.List(ctx, current)
 		if err != nil {
-			return errwrap.Wrapf(fmt.Sprintf("list failed at path %q: {{err}}", current), err)
+			return fmt.Errorf("list failed at path %q: %w", current, err)
 		}
 
 		// Handle the contents in the directory

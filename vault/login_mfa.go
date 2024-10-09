@@ -21,7 +21,6 @@ import (
 	"github.com/duosecurity/duo_api_golang/authapi"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/golang/protobuf/proto"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -1106,7 +1105,7 @@ func (b *MFABackend) handleMFAGenerateTOTP(ctx context.Context, mConfig *mfa.Con
 	// Read the entity after acquiring the lock
 	entity, err := b.Core.identityStore.MemDBEntityByID(entityID, true)
 	if err != nil {
-		return nil, errwrap.Wrapf(fmt.Sprintf("failed to find entity with ID %q: {{err}}", entityID), err)
+		return nil, fmt.Errorf("failed to find entity with ID %q: %w", entityID, err)
 	}
 
 	if entity == nil {
@@ -1134,7 +1133,7 @@ func (b *MFABackend) handleMFAGenerateTOTP(ctx context.Context, mConfig *mfa.Con
 		Rand:        b.Core.secureRandomReader,
 	})
 	if err != nil {
-		return nil, errwrap.Wrapf(fmt.Sprintf("failed to generate TOTP key for method name %q: {{err}}", mConfig.Name), err)
+		return nil, fmt.Errorf("failed to generate TOTP key for method name %q: %w", mConfig.Name, err)
 	}
 	if keyObject == nil {
 		return nil, fmt.Errorf("failed to generate TOTP key for method name %q", mConfig.Name)
@@ -1146,7 +1145,7 @@ func (b *MFABackend) handleMFAGenerateTOTP(ctx context.Context, mConfig *mfa.Con
 	if totpConfig.QRSize != 0 {
 		barcode, err := keyObject.Image(int(totpConfig.QRSize), int(totpConfig.QRSize))
 		if err != nil {
-			return nil, errwrap.Wrapf("failed to generate QR code image: {{err}}", err)
+			return nil, fmt.Errorf("failed to generate QR code image: %w", err)
 		}
 
 		var buff bytes.Buffer
@@ -1155,7 +1154,7 @@ func (b *MFABackend) handleMFAGenerateTOTP(ctx context.Context, mConfig *mfa.Con
 	}
 
 	if err := b.Core.PersistTOTPKey(ctx, mConfig.ID, entity.ID, keyObject.Secret()); err != nil {
-		return nil, errwrap.Wrapf("failed to persist totp key: {{err}}", err)
+		return nil, fmt.Errorf("failed to persist totp key: %w", err)
 	}
 
 	entity.MFASecrets[mConfig.ID] = &mfa.Secret{
@@ -1175,7 +1174,7 @@ func (b *MFABackend) handleMFAGenerateTOTP(ctx context.Context, mConfig *mfa.Con
 
 	err = b.Core.identityStore.upsertEntity(ctx, entity, nil, true)
 	if err != nil {
-		return nil, errwrap.Wrapf("failed to persist MFA secret in entity: {{err}}", err)
+		return nil, fmt.Errorf("failed to persist MFA secret in entity: %w", err)
 	}
 
 	return &logical.Response{
@@ -1611,7 +1610,7 @@ func parseOktaConfig(mConfig *mfa.Config, d *framework.FieldData) error {
 
 	_, err := url.Parse(fmt.Sprintf("https://%s,%s", oktaConfig.OrgName, oktaConfig.BaseURL))
 	if err != nil {
-		return errwrap.Wrapf("error parsing given base_url: {{err}}", err)
+		return fmt.Errorf("error parsing given base_url: %w", err)
 	}
 
 	mConfig.Config = &mfa.Config_OktaConfig{
@@ -1903,7 +1902,7 @@ func (c *Core) validateDuo(ctx context.Context, mfaFactors *MFAFactor, mConfig *
 
 	preauth, err := authClient.Preauth(authapi.PreauthUsername(username), authapi.PreauthIpAddr(reqConnectionRemoteAddr))
 	if err != nil {
-		return errwrap.Wrapf("failed to perform Duo preauth: {{err}}", err)
+		return fmt.Errorf("failed to perform Duo preauth: %w", err)
 	}
 	if preauth == nil {
 		return fmt.Errorf("failed to perform Duo preauth")
@@ -1943,7 +1942,7 @@ func (c *Core) validateDuo(ctx context.Context, mfaFactors *MFAFactor, mConfig *
 
 	result, err := authClient.Auth(factor, options...)
 	if err != nil {
-		return errwrap.Wrapf("failed to authenticate with Duo: {{err}}", err)
+		return fmt.Errorf("failed to authenticate with Duo: %w", err)
 	}
 	if result.StatResult.Stat != "OK" {
 		return fmt.Errorf("failed to authenticate with Duo: %q - %q", *result.StatResult.Message, *result.StatResult.Message_Detail)
@@ -1957,10 +1956,10 @@ func (c *Core) validateDuo(ctx context.Context, mfaFactors *MFAFactor, mConfig *
 		// there is no need to wait for a second before we invoke this API.
 		statusResult, err := authClient.AuthStatus(result.Response.Txid)
 		if err != nil {
-			return errwrap.Wrapf("failed to get authentication status from Duo: {{err}}", err)
+			return fmt.Errorf("failed to get authentication status from Duo: %w", err)
 		}
 		if statusResult == nil {
-			return errwrap.Wrapf("failed to get authentication status from Duo: {{err}}", err)
+			return fmt.Errorf("failed to get authentication status from Duo: %w", err)
 		}
 		if statusResult.StatResult.Stat != "OK" {
 			return fmt.Errorf("failed to get authentication status from Duo: %q - %q", *statusResult.StatResult.Message, *statusResult.StatResult.Message_Detail)
@@ -2122,7 +2121,7 @@ func (c *Core) validatePingID(ctx context.Context, mConfig *mfa.Config, username
 
 	signingKey, err := base64.StdEncoding.DecodeString(pingConfig.UseBase64Key)
 	if err != nil {
-		return errwrap.Wrapf("failed decoding pingid signing key: {{err}}", err)
+		return fmt.Errorf("failed decoding pingid signing key: %w", err)
 	}
 
 	client := cleanhttp.DefaultClient()
@@ -2149,7 +2148,7 @@ func (c *Core) validatePingID(ctx context.Context, mConfig *mfa.Config, username
 		}
 		signedToken, err := token.SignedString(signingKey)
 		if err != nil {
-			return nil, errwrap.Wrapf("failed signing pingid request token: {{err}}", err)
+			return nil, fmt.Errorf("failed signing pingid request token: %w", err)
 		}
 
 		// Construct the URL
@@ -2158,7 +2157,7 @@ func (c *Core) validatePingID(ctx context.Context, mConfig *mfa.Config, username
 		}
 		reqURL, err := url.Parse(pingConfig.IDPURL + reqPath)
 		if err != nil {
-			return nil, errwrap.Wrapf("failed to parse pingid request url: {{err}}", err)
+			return nil, fmt.Errorf("failed to parse pingid request url: %w", err)
 		}
 
 		// Construct the request; WithContext is done here since it's a shallow
@@ -2191,7 +2190,7 @@ func (c *Core) validatePingID(ctx context.Context, mConfig *mfa.Config, username
 		_, err = bodyBytes.ReadFrom(resp.Body)
 		resp.Body.Close()
 		if err != nil {
-			return nil, errwrap.Wrapf("error reading pingid response: {{err}}", err)
+			return nil, fmt.Errorf("error reading pingid response: %w", err)
 		}
 
 		// Parse the body, which is a JWT. Ensure that it's using HMAC signing
@@ -2203,7 +2202,7 @@ func (c *Core) validatePingID(ctx context.Context, mConfig *mfa.Config, username
 			return signingKey, nil
 		})
 		if err != nil {
-			return nil, errwrap.Wrapf("error parsing pingid response: {{err}}", err)
+			return nil, fmt.Errorf("error parsing pingid response: %w", err)
 		}
 
 		// Check if parameters are as expected
@@ -2369,7 +2368,7 @@ func (c *Core) validateTOTP(ctx context.Context, mfaFactors *MFAFactor, entityMe
 
 	key, err := c.fetchTOTPKey(ctx, configID, entityID)
 	if err != nil {
-		return errwrap.Wrapf("error fetching TOTP key: {{err}}", err)
+		return fmt.Errorf("error fetching TOTP key: %w", err)
 	}
 
 	if key == "" {
@@ -2385,7 +2384,7 @@ func (c *Core) validateTOTP(ctx context.Context, mfaFactors *MFAFactor, entityMe
 
 	valid, err := totplib.ValidateCustom(passcode, key, time.Now(), validateOpts)
 	if err != nil && err != otplib.ErrValidateInputInvalidLength {
-		return errwrap.Wrapf("failed to validate TOTP passcode: {{err}}", err)
+		return fmt.Errorf("failed to validate TOTP passcode: %w", err)
 	}
 
 	if !valid {
@@ -2514,18 +2513,18 @@ func (b *MFABackend) MemDBUpsertMFAConfigInTxn(txn *memdb.Txn, mConfig *mfa.Conf
 
 	mConfigRaw, err := txn.First(b.methodTable, "id", mConfig.ID)
 	if err != nil {
-		return errwrap.Wrapf("failed to lookup MFA config from MemDB using id: {{err}}", err)
+		return fmt.Errorf("failed to lookup MFA config from MemDB using id: %w", err)
 	}
 
 	if mConfigRaw != nil {
 		err = txn.Delete(b.methodTable, mConfigRaw)
 		if err != nil {
-			return errwrap.Wrapf("failed to delete MFA config from MemDB: {{err}}", err)
+			return fmt.Errorf("failed to delete MFA config from MemDB: %w", err)
 		}
 	}
 
 	if err := txn.Insert(b.methodTable, mConfig); err != nil {
-		return errwrap.Wrapf("failed to update MFA config into MemDB: {{err}}", err)
+		return fmt.Errorf("failed to update MFA config into MemDB: %w", err)
 	}
 
 	return nil
@@ -2570,7 +2569,7 @@ func (b *LoginMFABackend) MemDBMFAConfigByIDInTxn(txn *memdb.Txn, mConfigID stri
 
 	mConfigRaw, err := txn.First(b.methodTable, "id", mConfigID)
 	if err != nil {
-		return nil, errwrap.Wrapf("failed to fetch MFA config from memdb using id: {{err}}", err)
+		return nil, fmt.Errorf("failed to fetch MFA config from memdb using id: %w", err)
 	}
 
 	if mConfigRaw == nil {
@@ -2862,7 +2861,7 @@ func (b *LoginMFABackend) MemDBDeleteMFAConfigByIDInTxn(txn *memdb.Txn, configID
 
 	err = txn.Delete(b.methodTable, mConfig)
 	if err != nil {
-		return errwrap.Wrapf("failed to delete MFA config from memdb: {{err}}", err)
+		return fmt.Errorf("failed to delete MFA config from memdb: %w", err)
 	}
 
 	return nil

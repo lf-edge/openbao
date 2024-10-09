@@ -8,7 +8,6 @@ import (
 	"net"
 	"strings"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-secure-stdlib/strutil"
 	sockaddr "github.com/hashicorp/go-sockaddr"
 )
@@ -134,7 +133,7 @@ func Subset(cidr1, cidr2 string) (bool, error) {
 
 	ip1, net1, err := net.ParseCIDR(cidr1)
 	if err != nil {
-		return false, errwrap.Wrapf("failed to parse the CIDR to be checked against: {{err}}", err)
+		return false, fmt.Errorf("failed to parse the CIDR to be checked against: %w", err)
 	}
 
 	zeroAddr := false
@@ -152,7 +151,7 @@ func Subset(cidr1, cidr2 string) (bool, error) {
 
 	ip2, net2, err := net.ParseCIDR(cidr2)
 	if err != nil {
-		return false, errwrap.Wrapf("failed to parse the CIDR that needs to be checked: {{err}}", err)
+		return false, fmt.Errorf("failed to parse the CIDR that needs to be checked: %w", err)
 	}
 
 	zeroAddr = false

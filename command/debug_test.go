@@ -789,7 +789,7 @@ func TestDebugCommand_InsecureUmask(t *testing.T) {
 			// check permissions of the parent debug directory
 			err = isValidFilePermissions(fs)
 			if err != nil {
-				t.Fatalf(err.Error())
+				t.Fatal(err.Error())
 			}
 
 			// check permissions of the files within the parent directory
@@ -804,7 +804,7 @@ func TestDebugCommand_InsecureUmask(t *testing.T) {
 					}
 					err = isValidFilePermissions(fh.FileInfo())
 					if err != nil {
-						t.Fatalf(err.Error())
+						t.Fatal(err.Error())
 					}
 					return nil
 				})
@@ -813,7 +813,7 @@ func TestDebugCommand_InsecureUmask(t *testing.T) {
 				err = filepath.Walk(bundlePath, func(path string, info os.FileInfo, err error) error {
 					err = isValidFilePermissions(info)
 					if err != nil {
-						t.Fatalf(err.Error())
+						t.Fatal(err.Error())
 					}
 					return nil
 				})

@@ -656,15 +656,6 @@ func (b *backend) checkForChainInCRLs(chain []*x509.Certificate) bool {
 	return badChain
 }
 
-func (b *backend) checkForValidChain(chains [][]*x509.Certificate) bool {
-	for _, chain := range chains {
-		if !b.checkForChainInCRLs(chain) {
-			return true
-		}
-	}
-	return false
-}
-
 // parsePEM parses a PEM encoded x509 certificate
 func parsePEM(raw []byte) (certs []*x509.Certificate) {
 	for len(raw) > 0 {

@@ -2176,7 +2176,7 @@ func (b *backend) pathRoleBoundCIDRUpdateCommon(ctx context.Context, req *logica
 		}
 		valid, err := cidrutil.ValidateCIDRListSlice(cidrs)
 		if err != nil {
-			return logical.ErrorResponse(fmt.Errorf("failed to validate CIDR blocks: %w", err).Error()), nil
+			return logical.ErrorResponse(fmt.Sprintf("failed to validate CIDR blocks: %v", err)), nil
 		}
 		if !valid {
 			return logical.ErrorResponse("failed to validate CIDR blocks"), nil
@@ -2186,7 +2186,7 @@ func (b *backend) pathRoleBoundCIDRUpdateCommon(ctx context.Context, req *logica
 	} else if cidrsIfc, ok := data.GetOk("token_bound_cidrs"); ok {
 		cidrs, err := parseutil.ParseAddrs(cidrsIfc.([]string))
 		if err != nil {
-			return logical.ErrorResponse(fmt.Errorf("failed to parse token_bound_cidrs: %w", err).Error()), nil
+			return logical.ErrorResponse(fmt.Sprintf("failed to parse token_bound_cidrs: %v", err)), nil
 		}
 		role.TokenBoundCIDRs = cidrs
 	}

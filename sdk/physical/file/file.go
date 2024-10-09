@@ -15,7 +15,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/hashicorp/errwrap"
 	log "github.com/hashicorp/go-hclog"
 
 	"github.com/openbao/openbao/sdk/v2/helper/consts"
@@ -90,7 +89,7 @@ func (b *FileBackend) DeleteInternal(ctx context.Context, path string) error {
 
 	err := os.Remove(fullPath)
 	if err != nil && !os.IsNotExist(err) {
-		return errwrap.Wrapf(fmt.Sprintf("failed to remove %q: {{err}}", fullPath), err)
+		return fmt.Errorf("failed to remove %q: %w", fullPath, err)
 	}
 
 	err = b.cleanupLogicalPath(path)

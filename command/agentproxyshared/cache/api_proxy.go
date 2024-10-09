@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	gohttp "net/http"
-	"sync"
 
 	hclog "github.com/hashicorp/go-hclog"
 	"github.com/openbao/openbao/api/v2"
@@ -18,8 +17,6 @@ import (
 type APIProxy struct {
 	client                  *api.Client
 	logger                  hclog.Logger
-	l                       sync.RWMutex
-	lastIndexStates         []string
 	userAgentString         string
 	userAgentStringFunction func(string) string
 }

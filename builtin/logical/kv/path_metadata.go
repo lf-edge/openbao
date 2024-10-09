@@ -76,8 +76,8 @@ version-agnostic information about a secret.
 
 		ExistenceCheck: b.metadataExistenceCheck(),
 
-		HelpSynopsis:    confHelpSyn,
-		HelpDescription: confHelpDesc,
+		HelpSynopsis:    metadataHelpSyn,
+		HelpDescription: metadataHelpDesc,
 	}
 }
 

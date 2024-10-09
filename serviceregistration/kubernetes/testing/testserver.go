@@ -42,21 +42,9 @@ var updatePodTagsResponse string
 //go:embed token
 var token string
 
-var (
-	// ReturnGatewayTimeouts toggles whether the test server should return,
-	// well, gateway timeouts...
-	ReturnGatewayTimeouts = atomic.NewBool(false)
-
-	pathToFiles = func() string {
-		wd, _ := os.Getwd()
-		repoName := "vault-enterprise"
-		if !strings.Contains(wd, repoName) {
-			repoName = "vault"
-		}
-		pathParts := strings.Split(wd, repoName)
-		return pathParts[0] + "vault/serviceregistration/kubernetes/testing/"
-	}()
-)
+// ReturnGatewayTimeouts toggles whether the test server should return,
+// well, gateway timeouts...
+var ReturnGatewayTimeouts = atomic.NewBool(false)
 
 // Conf returns the info needed to configure the client to point at
 // the test server. This must be done by the caller to avoid an import
@@ -229,12 +217,4 @@ func parsePath(urlPath string) (namespace, podName string, err error) {
 		return "", "", fmt.Errorf("received unexpected path: %s", original)
 	}
 	return namespace, podName, nil
-}
-
-func readFile(fileName string) (string, error) {
-	b, err := os.ReadFile(pathToFiles + fileName)
-	if err != nil {
-		return "", err
-	}
-	return string(b), nil
 }

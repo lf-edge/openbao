@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/cap/oidc"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-secure-stdlib/strutil"
 	"github.com/openbao/openbao/sdk/v2/framework"
 	"github.com/openbao/openbao/sdk/v2/helper/cidrutil"
@@ -285,7 +284,7 @@ func (b *jwtAuthBackend) pathCallback(ctx context.Context, req *logical.Request,
 
 	provider, err := b.getProvider(config)
 	if err != nil {
-		return nil, errwrap.Wrapf("error getting provider for login operation: {{err}}", err)
+		return nil, fmt.Errorf("error getting provider for login operation: %w", err)
 	}
 
 	var rawToken oidc.IDToken

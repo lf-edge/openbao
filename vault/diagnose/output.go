@@ -5,7 +5,6 @@ package diagnose
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"sort"
@@ -33,8 +32,6 @@ const (
 	OkStatus       = 0
 	SkippedStatus  = -1
 )
-
-var errUnimplemented = errors.New("unimplemented")
 
 type status int
 
@@ -96,7 +93,6 @@ func (r *Result) ZeroTimes() {
 type TelemetryCollector struct {
 	ui         io.Writer
 	spans      map[trace.SpanID]sdktrace.ReadOnlySpan
-	rootSpan   sdktrace.ReadOnlySpan
 	results    map[trace.SpanID]*Result
 	RootResult *Result
 	mu         sync.Mutex

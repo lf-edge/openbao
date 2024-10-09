@@ -31,7 +31,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/openbao/openbao/sdk/v2/helper/errutil"
 )
 
@@ -358,7 +357,7 @@ func (p *ParsedCertBundle) Verify() error {
 	if p.PrivateKey != nil && p.Certificate != nil {
 		equal, err := ComparePublicKeys(p.Certificate.PublicKey, p.PrivateKey.Public())
 		if err != nil {
-			return errwrap.Wrapf("could not compare public and private keys: {{err}}", err)
+			return fmt.Errorf("could not compare public and private keys: %w", err)
 		}
 		if !equal {
 			return fmt.Errorf("public key of certificate does not match private key")
@@ -638,7 +637,7 @@ func (p *ParsedCertBundle) GetTLSConfig(usage TLSUsage) (*tls.Config, error) {
 		// Technically we only need one cert, but this doesn't duplicate code
 		certBundle, err := p.ToCertBundle()
 		if err != nil {
-			return nil, errwrap.Wrapf("error converting parsed bundle to string bundle when getting TLS config: {{err}}", err)
+			return nil, fmt.Errorf("error converting parsed bundle to string bundle when getting TLS config: %w", err)
 		}
 
 		caPool := x509.NewCertPool()

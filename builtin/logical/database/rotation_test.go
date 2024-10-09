@@ -854,12 +854,6 @@ func testBackend_StaticRole_Rotations(t *testing.T, createUser userCreator, opts
 	}
 }
 
-type createUserCommand struct {
-	Username string        `bson:"createUser"`
-	Password string        `bson:"pwd"`
-	Roles    []interface{} `bson:"roles"`
-}
-
 // Demonstrates a bug fix for the credential rotation not releasing locks
 func TestBackend_StaticRole_LockRegression(t *testing.T) {
 	cluster, sys := getCluster(t)

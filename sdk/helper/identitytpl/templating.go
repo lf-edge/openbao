@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-secure-stdlib/parseutil"
 	"github.com/openbao/openbao/sdk/v2/logical"
 )
@@ -333,7 +332,7 @@ func performTemplating(input string, p *PopulateStringInput) (string, error) {
 		case 3:
 			duration, err := parseutil.ParseDurationSecond(opsSplit[2])
 			if err != nil {
-				return "", errwrap.Wrapf("invalid duration: {{err}}", err)
+				return "", fmt.Errorf("invalid duration: %w", err)
 			}
 
 			switch opsSplit[1] {

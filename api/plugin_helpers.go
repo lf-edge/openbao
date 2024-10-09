@@ -10,12 +10,11 @@ import (
 	"encoding/base64"
 	"errors"
 	"flag"
+	"fmt"
 	"net/url"
 	"regexp"
 
 	"github.com/go-jose/go-jose/v3/jwt"
-
-	"github.com/hashicorp/errwrap"
 )
 
 const (
@@ -131,12 +130,12 @@ func VaultPluginTLSProviderContext(ctx context.Context, apiTLSConfig *TLSConfig)
 
 		parsedJWT, err := jwt.ParseSigned(unwrapToken)
 		if err != nil {
-			return nil, errwrap.Wrapf("error parsing wrapping token: {{err}}", err)
+			return nil, fmt.Errorf("error parsing wrapping token: %w", err)
 		}
 
 		allClaims := make(map[string]interface{})
 		if err = parsedJWT.UnsafeClaimsWithoutVerification(&allClaims); err != nil {
-			return nil, errwrap.Wrapf("error parsing claims from wrapping token: {{err}}", err)
+			return nil, fmt.Errorf("error parsing claims from wrapping token: %w", err)
 		}
 
 		addrClaimRaw, ok := allClaims["addr"]
@@ -153,7 +152,7 @@ func VaultPluginTLSProviderContext(ctx context.Context, apiTLSConfig *TLSConfig)
 
 		// Sanity check the value
 		if _, err := url.Parse(vaultAddr); err != nil {
-			return nil, errwrap.Wrapf("error parsing the vault api_addr: {{err}}", err)
+			return nil, fmt.Errorf("error parsing the vault api_addr: %w", err)
 		}
 
 		// Unwrap the token
@@ -162,12 +161,12 @@ func VaultPluginTLSProviderContext(ctx context.Context, apiTLSConfig *TLSConfig)
 		if apiTLSConfig != nil {
 			err := clientConf.ConfigureTLS(apiTLSConfig)
 			if err != nil {
-				return nil, errwrap.Wrapf("error configuring api client {{err}}", err)
+				return nil, fmt.Errorf("error configuring api client %w", err)
 			}
 		}
 		client, err := NewClient(clientConf)
 		if err != nil {
-			return nil, errwrap.Wrapf("error during api client creation: {{err}}", err)
+			return nil, fmt.Errorf("error during api client creation: %w", err)
 		}
 
 		// Reset token value to make sure nothing has been set by default
@@ -175,7 +174,7 @@ func VaultPluginTLSProviderContext(ctx context.Context, apiTLSConfig *TLSConfig)
 
 		secret, err := client.Logical().UnwrapWithContext(ctx, unwrapToken)
 		if err != nil {
-			return nil, errwrap.Wrapf("error during token unwrap request: {{err}}", err)
+			return nil, fmt.Errorf("error during token unwrap request: %w", err)
 		}
 		if secret == nil {
 			return nil, errors.New("error during token unwrap request: secret is nil")
@@ -189,12 +188,12 @@ func VaultPluginTLSProviderContext(ctx context.Context, apiTLSConfig *TLSConfig)
 
 		serverCertBytes, err := base64.StdEncoding.DecodeString(serverCertBytesRaw)
 		if err != nil {
-			return nil, errwrap.Wrapf("error parsing certificate: {{err}}", err)
+			return nil, fmt.Errorf("error parsing certificate: %w", err)
 		}
 
 		serverCert, err := x509.ParseCertificate(serverCertBytes)
 		if err != nil {
-			return nil, errwrap.Wrapf("error parsing certificate: {{err}}", err)
+			return nil, fmt.Errorf("error parsing certificate: %w", err)
 		}
 
 		// Retrieve and parse the server's private key
@@ -205,12 +204,12 @@ func VaultPluginTLSProviderContext(ctx context.Context, apiTLSConfig *TLSConfig)
 
 		serverKeyRaw, err := base64.StdEncoding.DecodeString(serverKeyB64)
 		if err != nil {
-			return nil, errwrap.Wrapf("error parsing certificate: {{err}}", err)
+			return nil, fmt.Errorf("error parsing certificate: %w", err)
 		}
 
 		serverKey, err := x509.ParseECPrivateKey(serverKeyRaw)
 		if err != nil {
-			return nil, errwrap.Wrapf("error parsing certificate: {{err}}", err)
+			return nil, fmt.Errorf("error parsing certificate: %w", err)
 		}
 
 		// Add CA cert to the cert pool

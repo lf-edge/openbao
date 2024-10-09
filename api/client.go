@@ -17,7 +17,6 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/hashicorp/go-rootcerts"
@@ -576,7 +575,7 @@ func NewClient(c *Config) (*Client, error) {
 		return nil, fmt.Errorf("could not create/read default configuration")
 	}
 	if def.Error != nil {
-		return nil, errwrap.Wrapf("error encountered setting up default configuration: {{err}}", def.Error)
+		return nil, fmt.Errorf("error encountered setting up default configuration: %w", def.Error)
 	}
 
 	if c == nil {
@@ -667,7 +666,7 @@ func (c *Client) SetAddress(addr string) error {
 
 	parsedAddr, err := c.config.ParseAddress(addr)
 	if err != nil {
-		return errwrap.Wrapf("failed to set address: {{err}}", err)
+		return fmt.Errorf("failed to set address: %w", err)
 	}
 
 	c.addr = parsedAddr
@@ -1350,7 +1349,7 @@ START:
 	}
 	if err != nil {
 		if strings.Contains(err.Error(), "tls: oversized") {
-			err = errwrap.Wrapf("{{err}}\n\n"+TLSErrorString, err)
+			err = fmt.Errorf("%w\n\n"+TLSErrorString, err)
 		}
 		return result, err
 	}
@@ -1479,7 +1478,7 @@ func (c *Client) httpRequestWithContext(ctx context.Context, r *Request) (*Respo
 
 	if err != nil {
 		if strings.Contains(err.Error(), "tls: oversized") {
-			err = errwrap.Wrapf("{{err}}\n\n"+TLSErrorString, err)
+			err = fmt.Errorf("%w\n\n"+TLSErrorString, err)
 		}
 		return result, err
 	}

@@ -12,7 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-secure-stdlib/parseutil"
 	"github.com/mitchellh/mapstructure"
 	"github.com/openbao/openbao/sdk/v2/database/dbplugin"
@@ -104,7 +103,7 @@ func (c *SQLConnectionProducer) Init(ctx context.Context, conf map[string]interf
 
 	c.maxConnectionLifetime, err = parseutil.ParseDurationSecond(c.MaxConnectionLifetimeRaw)
 	if err != nil {
-		return nil, errwrap.Wrapf("invalid max_connection_lifetime: {{err}}", err)
+		return nil, fmt.Errorf("invalid max_connection_lifetime: %w", err)
 	}
 
 	// Set initialized to true at this point since all fields are set,
@@ -113,11 +112,11 @@ func (c *SQLConnectionProducer) Init(ctx context.Context, conf map[string]interf
 
 	if verifyConnection {
 		if _, err := c.Connection(ctx); err != nil {
-			return nil, errwrap.Wrapf("error verifying connection: {{err}}", err)
+			return nil, fmt.Errorf("error verifying connection: %w", err)
 		}
 
 		if err := c.db.PingContext(ctx); err != nil {
-			return nil, errwrap.Wrapf("error verifying connection: {{err}}", err)
+			return nil, fmt.Errorf("error verifying connection: %w", err)
 		}
 	}
 

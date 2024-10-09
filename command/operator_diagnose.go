@@ -541,7 +541,7 @@ SEALFAIL:
 	diagnose.Test(ctx, "Check Core Creation", func(ctx context.Context) error {
 		var newCoreError error
 		if coreConfig.RawConfig == nil {
-			return fmt.Errorf(CoreConfigUninitializedErr)
+			return errors.New(CoreConfigUninitializedErr)
 		}
 		core, newCoreError := vault.CreateCore(&coreConfig)
 		if newCoreError != nil {

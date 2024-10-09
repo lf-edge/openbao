@@ -9,7 +9,6 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/cap/jwt"
-	"github.com/hashicorp/errwrap"
 	"github.com/openbao/openbao/sdk/v2/framework"
 	"github.com/openbao/openbao/sdk/v2/helper/cidrutil"
 	"github.com/openbao/openbao/sdk/v2/logical"
@@ -204,7 +203,7 @@ func (b *jwtAuthBackend) pathLoginRenew(ctx context.Context, req *logical.Reques
 	// Ensure that the Role still exists.
 	role, err := b.role(ctx, req.Storage, roleName)
 	if err != nil {
-		return nil, errwrap.Wrapf(fmt.Sprintf("failed to validate role %s during renewal: {{err}}", roleName), err)
+		return nil, fmt.Errorf("failed to validate role %s during renewal: %w", roleName, err)
 	}
 	if role == nil {
 		return nil, fmt.Errorf("role %s does not exist during renewal", roleName)

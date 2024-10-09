@@ -9,12 +9,12 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/hashicorp/cap/jwt"
 	"github.com/hashicorp/cap/oidc"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-secure-stdlib/strutil"
 	"github.com/openbao/openbao/sdk/v2/framework"
@@ -153,7 +153,7 @@ func (b *jwtAuthBackend) config(ctx context.Context, s logical.Storage) (*jwtCon
 	for _, v := range config.JWTValidationPubKeys {
 		key, err := certutil.ParsePublicKeyPEM([]byte(v))
 		if err != nil {
-			return nil, errwrap.Wrapf("error parsing public key: {{err}}", err)
+			return nil, fmt.Errorf("error parsing public key: %w", err)
 		}
 		config.ParsedJWTPubKeys = append(config.ParsedJWTPubKeys, key)
 	}
@@ -302,7 +302,7 @@ func (b *jwtAuthBackend) pathConfigWrite(ctx context.Context, req *logical.Reque
 	case len(config.JWTValidationPubKeys) != 0:
 		for _, v := range config.JWTValidationPubKeys {
 			if _, err := certutil.ParsePublicKeyPEM([]byte(v)); err != nil {
-				return logical.ErrorResponse(errwrap.Wrapf("error parsing public key: {{err}}", err).Error()), nil
+				return logical.ErrorResponse(fmt.Sprintf("error parsing public key: %v", err)), nil
 			}
 		}
 
@@ -365,12 +365,12 @@ func (b *jwtAuthBackend) createProvider(config *jwtConfig) (*oidc.Provider, erro
 		oidc.ClientSecret(config.OIDCClientSecret), supportedSigAlgs, []string{},
 		oidc.WithProviderCA(config.OIDCDiscoveryCAPEM))
 	if err != nil {
-		return nil, errwrap.Wrapf("error creating provider: {{err}}", err)
+		return nil, fmt.Errorf("error creating provider: %w", err)
 	}
 
 	provider, err := oidc.NewProvider(c)
 	if err != nil {
-		return nil, errwrap.Wrapf("error creating provider with given values: {{err}}", err)
+		return nil, fmt.Errorf("error creating provider with given values: %w", err)
 	}
 
 	return provider, nil

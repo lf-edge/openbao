@@ -4129,7 +4129,7 @@ func TestTokenStore_RolePeriod(t *testing.T) {
 			t.Fatal("response was nil")
 		}
 		if resp.Auth == nil {
-			t.Fatalf(fmt.Sprintf("response auth was nil, resp is %#v", *resp))
+			t.Fatalf("response auth was nil, resp is %#v", *resp)
 		}
 		if resp.Auth.ClientToken == "" {
 			t.Fatalf("bad: %#v", resp)
@@ -4286,7 +4286,7 @@ func TestTokenStore_RoleExplicitMaxTTL(t *testing.T) {
 			t.Fatal("response was nil")
 		}
 		if resp.Auth == nil {
-			t.Fatalf(fmt.Sprintf("response auth was nil, resp is %#v", *resp))
+			t.Fatalf("response auth was nil, resp is %#v", *resp)
 		}
 		if resp.Auth.ClientToken == "" {
 			t.Fatalf("bad: %#v", resp)
@@ -4678,7 +4678,7 @@ func TestTokenStore_Periodic(t *testing.T) {
 			t.Fatal("response was nil")
 		}
 		if resp.Auth == nil {
-			t.Fatalf(fmt.Sprintf("response auth was nil, resp is %#v", *resp))
+			t.Fatalf("response auth was nil, resp is %#v", *resp)
 		}
 		if resp.Auth.ClientToken == "" {
 			t.Fatalf("bad: %#v", resp)
@@ -4739,7 +4739,7 @@ func TestTokenStore_Periodic(t *testing.T) {
 			t.Fatal("response was nil")
 		}
 		if resp.Auth == nil {
-			t.Fatalf(fmt.Sprintf("response auth was nil, resp is %#v", *resp))
+			t.Fatalf("response auth was nil, resp is %#v", *resp)
 		}
 		if resp.Auth.ClientToken == "" {
 			t.Fatalf("bad: %#v", resp)
@@ -4791,7 +4791,7 @@ func testTokenStore_NumUses_ErrorCheckHelper(t *testing.T, resp *logical.Respons
 		t.Fatal("response was nil")
 	}
 	if resp.Auth == nil {
-		t.Fatalf(fmt.Sprintf("response auth was nil, resp is %#v", *resp))
+		t.Fatalf("response auth was nil, resp is %#v", *resp)
 	}
 	if resp.Auth.ClientToken == "" {
 		t.Fatalf("bad: %#v", resp)
@@ -4938,7 +4938,7 @@ func TestTokenStore_Periodic_ExplicitMax(t *testing.T) {
 			t.Fatal("response was nil")
 		}
 		if resp.Auth == nil {
-			t.Fatalf(fmt.Sprintf("response auth was nil, resp is %#v", *resp))
+			t.Fatalf("response auth was nil, resp is %#v", *resp)
 		}
 		if resp.Auth.ClientToken == "" {
 			t.Fatalf("bad: %#v", resp)
@@ -5012,7 +5012,7 @@ func TestTokenStore_Periodic_ExplicitMax(t *testing.T) {
 			t.Fatal("response was nil")
 		}
 		if resp.Auth == nil {
-			t.Fatalf(fmt.Sprintf("response auth was nil, resp is %#v", *resp))
+			t.Fatalf("response auth was nil, resp is %#v", *resp)
 		}
 		if resp.Auth.ClientToken == "" {
 			t.Fatalf("bad: %#v", resp)

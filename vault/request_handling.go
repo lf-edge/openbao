@@ -178,7 +178,7 @@ func (c *Core) getApplicableGroupPolicies(ctx context.Context, tokenNS *namespac
 			// When we attempt to get a non-EGP policy type, and receive an
 			// explicit error that it doesn't exist (in the type map) we log the
 			// ns/policy and continue without error.
-			c.Logger().Debug(fmt.Errorf("%w: %v/%v", err, policyNS.ID, policyName).Error())
+			c.Logger().Debug(fmt.Sprintf("%v: %v/%v", err, policyNS.ID, policyName))
 			continue
 		}
 		if err != nil || t == nil {
@@ -683,7 +683,7 @@ func (c *Core) handleCancelableRequest(ctx context.Context, req *logical.Request
 
 	ns, err = namespace.FromContext(ctx)
 	if err != nil {
-		return nil, errwrap.Wrapf("could not parse namespace from http context: {{err}}", err)
+		return nil, fmt.Errorf("could not parse namespace from http context: %w", err)
 	}
 
 	if ns.Path != "" {

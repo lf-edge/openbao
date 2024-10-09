@@ -236,7 +236,7 @@ func TestCache_ConcurrentRequests(t *testing.T) {
 				t.Fatal(err)
 			}
 			if secret == nil || secret.Data["key"].(string) != key {
-				t.Fatal(fmt.Sprintf("failed to read value for key: %q", key))
+				t.Fatalf("failed to read value for key: %q", key)
 			}
 		}(i)
 

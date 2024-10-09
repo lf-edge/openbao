@@ -11,9 +11,6 @@ import (
 )
 
 func TestParseSingleIPTemplate(t *testing.T) {
-	type args struct {
-		ipTmpl string
-	}
 	tests := []struct {
 		name    string
 		arg     string

@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-secure-stdlib/strutil"
 	"github.com/jcmturner/gokrb5/v8/keytab"
@@ -77,7 +76,7 @@ func (b *backend) pathLoginGet(ctx context.Context, req *logical.Request, d *fra
 func (b *backend) pathLoginUpdate(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	kerbCfg, err := b.config(ctx, req.Storage)
 	if err != nil {
-		return nil, errwrap.Wrapf("unable to get kerberos config: {{err}}", err)
+		return nil, fmt.Errorf("unable to get kerberos config: %w", err)
 	}
 	if kerbCfg == nil {
 		return nil, errors.New("backend kerberos not configured")
@@ -85,7 +84,7 @@ func (b *backend) pathLoginUpdate(ctx context.Context, req *logical.Request, d *
 
 	ldapCfg, err := b.ConfigLdap(ctx, req)
 	if err != nil {
-		return nil, errwrap.Wrapf("unable to get ldap config: {{err}}", err)
+		return nil, fmt.Errorf("unable to get ldap config: %w", err)
 	}
 	if ldapCfg == nil {
 		return nil, errors.New("ldap backend not configured")
@@ -112,7 +111,7 @@ func (b *backend) pathLoginUpdate(ctx context.Context, req *logical.Request, d *
 
 	kt, err := parseKeytab(kerbCfg.Keytab)
 	if err != nil {
-		return nil, errwrap.Wrapf("could not parse keytab: {{err}}", err)
+		return nil, fmt.Errorf("could not parse keytab: %w", err)
 	}
 
 	if kerbCfg.RemoveInstanceName {
@@ -208,7 +207,7 @@ func (b *backend) pathLoginUpdate(ctx context.Context, req *logical.Request, d *
 
 	ldapConnection, err := ldapClient.DialLDAP(ldapCfg.ConfigEntry)
 	if err != nil {
-		return nil, errwrap.Wrapf("could not connect to LDAP: {{err}}", err)
+		return nil, fmt.Errorf("could not connect to LDAP: %w", err)
 	}
 	if ldapConnection == nil {
 		return nil, errors.New("invalid connection returned from LDAP dial")
@@ -228,18 +227,18 @@ func (b *backend) pathLoginUpdate(ctx context.Context, req *logical.Request, d *
 
 	userBindDN, err := ldapClient.GetUserBindDN(ldapCfg.ConfigEntry, ldapConnection, username)
 	if err != nil {
-		return nil, errwrap.Wrapf("unable to get user binddn: {{err}}", err)
+		return nil, fmt.Errorf("unable to get user binddn: %w", err)
 	}
 	b.Logger().Debug("auth/ldap: User BindDN fetched", "username", identity.UserName(), "binddn", userBindDN)
 
 	userDN, err := ldapClient.GetUserDN(ldapCfg.ConfigEntry, ldapConnection, userBindDN, username)
 	if err != nil {
-		return nil, errwrap.Wrapf("unable to get user dn: {{err}}", err)
+		return nil, fmt.Errorf("unable to get user dn: %w", err)
 	}
 
 	ldapGroups, err := ldapClient.GetLdapGroups(ldapCfg.ConfigEntry, ldapConnection, userDN, username)
 	if err != nil {
-		return nil, errwrap.Wrapf("unable to get ldap groups: {{err}}", err)
+		return nil, fmt.Errorf("unable to get ldap groups: %w", err)
 	}
 	b.Logger().Debug("auth/ldap: Groups fetched from server", "num_server_groups", len(ldapGroups), "server_groups", ldapGroups)
 

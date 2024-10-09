@@ -29,7 +29,7 @@ func TestTLSValidCert(t *testing.T) {
 	warnings, errs := ListenerChecks(context.Background(), listeners)
 	if errs != nil {
 		// The test failed -- we can just return one of the errors
-		t.Fatalf(errs[0].Error())
+		t.Fatal(errs[0].Error())
 	}
 	if warnings != nil {
 		t.Fatalf("warnings returned from good listener")
@@ -268,7 +268,7 @@ func TestTLSInvalidMinVersion(t *testing.T) {
 	if errs == nil || len(errs) != 1 {
 		t.Fatalf("TLS Config check on invalid 'tls_min_version' should fail")
 	}
-	if !strings.Contains(errs[0].Error(), fmt.Errorf(minVersionError, "0").Error()) {
+	if !strings.Contains(errs[0].Error(), fmt.Sprintf(minVersionError, "0")) {
 		t.Fatalf("Bad error message: %s", errs[0])
 	}
 }
@@ -292,7 +292,7 @@ func TestTLSInvalidMaxVersion(t *testing.T) {
 	if errs == nil || len(errs) != 1 {
 		t.Fatalf("TLS Config check on invalid 'tls_max_version' should fail")
 	}
-	if !strings.Contains(errs[0].Error(), fmt.Errorf(maxVersionError, "0").Error()) {
+	if !strings.Contains(errs[0].Error(), fmt.Sprintf(maxVersionError, "0")) {
 		t.Fatalf("Bad error message: %s", errs[0])
 	}
 }

@@ -5,8 +5,8 @@ package framework
 
 import (
 	"errors"
+	"fmt"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/openbao/openbao/sdk/v2/helper/identitytpl"
 	"github.com/openbao/openbao/sdk/v2/logical"
 )
@@ -53,7 +53,7 @@ func ValidateIdentityTemplate(tpl string) (bool, error) {
 		String:            tpl,
 	})
 	if err != nil {
-		return false, errwrap.Wrapf("failed to validate policy templating: {{err}}", err)
+		return false, fmt.Errorf("failed to validate policy templating: %w", err)
 	}
 
 	return hasTemplating, nil

@@ -38,8 +38,6 @@ const (
 	testCIDRList      = "127.0.0.1/32"
 	testAtRoleName    = "test@RoleName"
 	testOTPRoleName   = "testOTPRoleName"
-	// testKeyName is the name of the entry that will be written to SSHMOUNTPOINT/ssh/keys
-	testKeyName = "testKeyName"
 	// testSharedPrivateKey is the value of the entry that will be written to SSHMOUNTPOINT/ssh/keys
 	testSharedPrivateKey = `
 -----BEGIN RSA PRIVATE KEY-----
@@ -500,21 +498,21 @@ func TestBackend_DefaultUserTemplateFalse_AllowedUsersTemplateFalse(t *testing.T
 	}
 	actualPrincipals := parsedKey.(*ssh.Certificate).ValidPrincipals
 	if len(actualPrincipals) < 1 {
-		t.Fatal(
-			fmt.Sprintf("No ValidPrincipals returned: should have been %v",
-				[]string{"{{identity.entity.metadata.ssh_username}}"}),
+		t.Fatalf(
+			"No ValidPrincipals returned: should have been %v",
+			[]string{"{{identity.entity.metadata.ssh_username}}"},
 		)
 	}
 	if len(actualPrincipals) > 1 {
-		t.Error(
-			fmt.Sprintf("incorrect number ValidPrincipals, expected only 1: %v should be %v",
-				actualPrincipals, []string{"{{identity.entity.metadata.ssh_username}}"}),
+		t.Errorf(
+			"incorrect number ValidPrincipals, expected only 1: %v should be %v",
+			actualPrincipals, []string{"{{identity.entity.metadata.ssh_username}}"},
 		)
 	}
 	if actualPrincipals[0] != "{{identity.entity.metadata.ssh_username}}" {
-		t.Fatal(
-			fmt.Sprintf("incorrect ValidPrincipals: %v should be %v",
-				actualPrincipals, []string{"{{identity.entity.metadata.ssh_username}}"}),
+		t.Fatalf(
+			"incorrect ValidPrincipals: %v should be %v",
+			actualPrincipals, []string{"{{identity.entity.metadata.ssh_username}}"},
 		)
 	}
 }
@@ -1995,9 +1993,9 @@ func testDefaultUserTemplate(t *testing.T, testDefaultUserTemplate string,
 	}
 	actualPrincipals := parsedKey.(*ssh.Certificate).ValidPrincipals
 	if actualPrincipals[0] != expectedValidPrincipal {
-		t.Fatal(
-			fmt.Sprintf("incorrect ValidPrincipals: %v should be %v",
-				actualPrincipals, []string{expectedValidPrincipal}),
+		t.Fatalf(
+			"incorrect ValidPrincipals: %v should be %v",
+			actualPrincipals, []string{expectedValidPrincipal},
 		)
 	}
 }
@@ -2269,7 +2267,7 @@ func testConfigZeroAddressRead(t *testing.T, expected map[string]interface{}) lo
 func testVerifyWrite(t *testing.T, data map[string]interface{}, expected map[string]interface{}) logicaltest.TestStep {
 	return logicaltest.TestStep{
 		Operation: logical.UpdateOperation,
-		Path:      fmt.Sprintf("verify"),
+		Path:      "verify",
 		Data:      data,
 		Check: func(resp *logical.Response) error {
 			var ac api.SSHVerifyResponse

@@ -19,7 +19,6 @@ import (
 	"github.com/openbao/go-kms-wrapping/entropy/v2"
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
-	"github.com/hashicorp/errwrap"
 	log "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-secure-stdlib/parseutil"
@@ -667,7 +666,7 @@ func (b *Backend) handleWALRollback(ctx context.Context, req *logical.Request) (
 		// Attempt a WAL rollback
 		err = b.WALRollback(ctx, req, entry.Kind, entry.Data)
 		if err != nil {
-			err = errwrap.Wrapf(fmt.Sprintf("error rolling back %q entry: {{err}}", entry.Kind), err)
+			err = fmt.Errorf("error rolling back %q entry: %w", entry.Kind, err)
 		}
 		if err == nil {
 			err = DeleteWAL(ctx, req.Storage, k)

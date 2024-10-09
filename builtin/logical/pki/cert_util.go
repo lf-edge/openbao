@@ -1312,7 +1312,7 @@ func generateCreationBundle(b *backend, data *inputBundle, caSign *certutil.CAIn
 	if data.role.UseCSRSANs && csr != nil && len(csr.Extensions) > 0 {
 		others, err := getOtherSANsFromX509Extensions(csr.Extensions)
 		if err != nil {
-			return nil, nil, errutil.UserError{Err: fmt.Errorf("could not parse requested other SAN: %w", err).Error()}
+			return nil, nil, errutil.UserError{Err: fmt.Sprintf("could not parse requested other SAN: %v", err)}
 		}
 		for _, other := range others {
 			otherSANsInput = append(otherSANsInput, other.String())
@@ -1321,7 +1321,7 @@ func generateCreationBundle(b *backend, data *inputBundle, caSign *certutil.CAIn
 	if len(otherSANsInput) > 0 {
 		requested, err := parseOtherSANs(otherSANsInput)
 		if err != nil {
-			return nil, nil, errutil.UserError{Err: fmt.Errorf("could not parse requested other SAN: %w", err).Error()}
+			return nil, nil, errutil.UserError{Err: fmt.Sprintf("could not parse requested other SAN: %v", err)}
 		}
 		badOID, badName, err := validateOtherSANs(data, requested)
 		switch {

@@ -12,8 +12,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-
-	"github.com/hashicorp/errwrap"
 )
 
 const (
@@ -419,7 +417,7 @@ func (c *Logical) UnwrapWithContext(ctx context.Context, wrappingToken string) (
 
 	secret, err = c.ReadWithContext(ctx, wrappedResponseLocation)
 	if err != nil {
-		return nil, errwrap.Wrapf(fmt.Sprintf("error reading %q: {{err}}", wrappedResponseLocation), err)
+		return nil, fmt.Errorf("error reading %q: %w", wrappedResponseLocation, err)
 	}
 	if secret == nil {
 		return nil, fmt.Errorf("no value found at %q", wrappedResponseLocation)
@@ -436,7 +434,7 @@ func (c *Logical) UnwrapWithContext(ctx context.Context, wrappingToken string) (
 	dec := json.NewDecoder(buf)
 	dec.UseNumber()
 	if err := dec.Decode(wrappedSecret); err != nil {
-		return nil, errwrap.Wrapf("error unmarshalling wrapped secret: {{err}}", err)
+		return nil, fmt.Errorf("error unmarshalling wrapped secret: %w", err)
 	}
 
 	return wrappedSecret, nil

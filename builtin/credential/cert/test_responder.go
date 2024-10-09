@@ -14,7 +14,6 @@
 package cert
 
 import (
-	"crypto"
 	"crypto/sha256"
 	"encoding/base64"
 	"errors"
@@ -30,8 +29,6 @@ import (
 var (
 	malformedRequestErrorResponse = []byte{0x30, 0x03, 0x0A, 0x01, 0x01}
 	internalErrorErrorResponse    = []byte{0x30, 0x03, 0x0A, 0x01, 0x02}
-	tryLaterErrorResponse         = []byte{0x30, 0x03, 0x0A, 0x01, 0x03}
-	sigRequredErrorResponse       = []byte{0x30, 0x03, 0x0A, 0x01, 0x05}
 	unauthorizedErrorResponse     = []byte{0x30, 0x03, 0x0A, 0x01, 0x06}
 
 	// ErrNotFound indicates the request OCSP response was not found. It is used to
@@ -106,15 +103,6 @@ func overrideHeaders(response http.ResponseWriter, headers http.Header) {
 			}
 		}
 	}
-}
-
-// hashToString contains mappings for the only hash functions
-// x/crypto/ocsp supports
-var hashToString = map[crypto.Hash]string{
-	crypto.SHA1:   "SHA1",
-	crypto.SHA256: "SHA256",
-	crypto.SHA384: "SHA384",
-	crypto.SHA512: "SHA512",
 }
 
 // A Responder can process both GET and POST requests.  The mapping

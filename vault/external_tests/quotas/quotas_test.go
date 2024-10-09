@@ -4,7 +4,6 @@
 package quotas
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -20,14 +19,6 @@ import (
 	"go.uber.org/atomic"
 )
 
-const (
-	testLookupOnlyPolicy = `
-path "/auth/token/lookup" {
-	capabilities = [ "create", "update"]
-}
-`
-)
-
 var coreConfig = &vault.CoreConfig{
 	LogicalBackends: map[string]logical.Factory{
 		"pki": pki.Factory,
@@ -35,64 +26,6 @@ var coreConfig = &vault.CoreConfig{
 	CredentialBackends: map[string]logical.Factory{
 		"userpass": userpass.Factory,
 	},
-}
-
-func setupMounts(t *testing.T, client *api.Client) {
-	t.Helper()
-
-	err := client.Sys().EnableAuthWithOptions("userpass", &api.EnableAuthOptions{
-		Type: "userpass",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	_, err = client.Logical().Write("auth/userpass/users/foo", map[string]interface{}{
-		"password": "bar",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = client.Sys().Mount("pki", &api.MountInput{
-		Type: "pki",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	_, err = client.Logical().Write("pki/root/generate/internal", map[string]interface{}{
-		"common_name": "testvault.com",
-		"ttl":         "200h",
-		"ip_sans":     "127.0.0.1",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	_, err = client.Logical().Write("pki/roles/test", map[string]interface{}{
-		"require_cn":       false,
-		"allowed_domains":  "testvault.com",
-		"allow_subdomains": true,
-		"max_ttl":          "2h",
-		"generate_lease":   true,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-func teardownMounts(t *testing.T, client *api.Client) {
-	t.Helper()
-	if err := client.Sys().Unmount("pki"); err != nil {
-		t.Fatal(err)
-	}
-	if err := client.Sys().DisableAuth("userpass"); err != nil {
-		t.Fatal(err)
-	}
-	if err := client.Sys().DisableAuth("approle"); err != nil {
-		t.Fatal(err)
-	}
 }
 
 func testRPS(reqFunc func(numSuccess, numFail *atomic.Int32), d time.Duration) (int32, int32, time.Duration) {
@@ -106,29 +39,6 @@ func testRPS(reqFunc func(numSuccess, numFail *atomic.Int32), d time.Duration) (
 	}
 
 	return numSuccess.Load(), numFail.Load(), time.Since(start)
-}
-
-func waitForRemovalOrTimeout(c *api.Client, path string, tick, to time.Duration) error {
-	ticker := time.Tick(tick)
-	timeout := time.After(to)
-
-	// wait for the resource to be removed
-	for {
-		select {
-		case <-timeout:
-			return fmt.Errorf("timeout exceeding waiting for resource to be deleted: %s", path)
-
-		case <-ticker:
-			resp, err := c.Logical().Read(path)
-			if err != nil {
-				return err
-			}
-
-			if resp == nil {
-				return nil
-			}
-		}
-	}
 }
 
 func TestQuotas_RateLimit_DupName(t *testing.T) {

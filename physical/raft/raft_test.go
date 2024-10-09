@@ -28,53 +28,6 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
-func connectPeers(nodes ...*RaftBackend) {
-	for _, node := range nodes {
-		for _, peer := range nodes {
-			if node == peer {
-				continue
-			}
-
-			node.raftTransport.(*raft.InmemTransport).Connect(raft.ServerAddress(peer.NodeID()), peer.raftTransport)
-			peer.raftTransport.(*raft.InmemTransport).Connect(raft.ServerAddress(node.NodeID()), node.raftTransport)
-		}
-	}
-}
-
-func stepDownLeader(t *testing.T, node *RaftBackend) {
-	t.Helper()
-
-	if err := node.raft.LeadershipTransfer().Error(); err != nil {
-		t.Fatal(err)
-	}
-
-	timeout := time.Now().Add(time.Second * 10)
-	for !time.Now().After(timeout) {
-		if err := node.raft.VerifyLeader().Error(); err != nil {
-			return
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
-
-	t.Fatal("still leader")
-}
-
-func waitForLeader(t *testing.T, nodes ...*RaftBackend) *RaftBackend {
-	t.Helper()
-	timeout := time.Now().Add(time.Second * 10)
-	for !time.Now().After(timeout) {
-		for _, node := range nodes {
-			if node.raft.Leader() == raft.ServerAddress(node.NodeID()) {
-				return node
-			}
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
-
-	t.Fatal("no leader")
-	return nil
-}
-
 func compareFSMs(t *testing.T, fsm1, fsm2 *FSM) {
 	t.Helper()
 	if err := compareFSMsWithErr(t, fsm1, fsm2); err != nil {

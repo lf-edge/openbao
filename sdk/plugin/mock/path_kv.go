@@ -5,8 +5,8 @@ package mock
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/openbao/openbao/sdk/v2/framework"
 	"github.com/openbao/openbao/sdk/v2/logical"
 )
@@ -42,7 +42,7 @@ func kvPaths(b *backend) []*framework.Path {
 func (b *backend) pathExistenceCheck(ctx context.Context, req *logical.Request, data *framework.FieldData) (bool, error) {
 	out, err := req.Storage.Get(ctx, req.Path)
 	if err != nil {
-		return false, errwrap.Wrapf("existence check failed: {{err}}", err)
+		return false, fmt.Errorf("existence check failed: %w", err)
 	}
 
 	return out != nil, nil

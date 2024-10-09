@@ -623,7 +623,7 @@ func (b *backend) checkUpgrade(ctx context.Context, s logical.Storage, n string,
 			goto SKIPVERSION2
 		}
 		if publicKeyEntry == nil || publicKeyEntry.Key == "" {
-			b.Logger().Debug(fmt.Sprintf("got empty public key entry while attempting to migrate"))
+			b.Logger().Debug("got empty public key entry while attempting to migrate")
 			goto SKIPVERSION2
 		}
 

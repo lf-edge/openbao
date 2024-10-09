@@ -14,8 +14,6 @@ import (
 	"path"
 	"strings"
 	"sync"
-
-	"github.com/hashicorp/errwrap"
 )
 
 const pluginPrefix = "vault-plugin-"
@@ -103,7 +101,7 @@ func (cg *CertificateGetter) Reload() error {
 	if x509.IsEncryptedPEMBlock(keyBlock) {
 		keyBlock.Bytes, err = x509.DecryptPEMBlock(keyBlock, []byte(cg.passphrase))
 		if err != nil {
-			return errwrap.Wrapf("Decrypting PEM block failed {{err}}", err)
+			return fmt.Errorf("Decrypting PEM block failed %w", err)
 		}
 		keyPEMBlock = pem.EncodeToMemory(keyBlock)
 	}

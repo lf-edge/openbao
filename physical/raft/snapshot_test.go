@@ -24,13 +24,6 @@ import (
 	"github.com/openbao/openbao/sdk/v2/plugin/pb"
 )
 
-type idAddr struct {
-	id string
-}
-
-func (a *idAddr) Network() string { return "inmem" }
-func (a *idAddr) String() string  { return a.id }
-
 func addPeer(t *testing.T, leader, follower *RaftBackend) {
 	t.Helper()
 	if err := leader.AddPeer(context.Background(), follower.NodeID(), follower.NodeID()); err != nil {

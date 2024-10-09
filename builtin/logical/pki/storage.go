@@ -1432,10 +1432,6 @@ func (sc *storageContext) writeAutoTidyConfig(config *tidyConfig) error {
 	return nil
 }
 
-func (sc *storageContext) listRevokedCerts() ([]string, error) {
-	return sc.listRevokedCertsPage("", -1)
-}
-
 func (sc *storageContext) listRevokedCertsPage(after string, limit int) ([]string, error) {
 	list, err := sc.Storage.ListPage(sc.Context, revokedPath, after, limit)
 	if err != nil {

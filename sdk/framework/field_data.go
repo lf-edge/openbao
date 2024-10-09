@@ -12,7 +12,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-secure-stdlib/parseutil"
 	"github.com/hashicorp/go-secure-stdlib/strutil"
 	"github.com/mitchellh/mapstructure"
@@ -46,7 +45,7 @@ func (d *FieldData) Validate() error {
 			TypeKVPairs, TypeCommaIntSlice, TypeHeader, TypeFloat, TypeTime:
 			_, _, err := d.getPrimitive(field, schema)
 			if err != nil {
-				return errwrap.Wrapf(fmt.Sprintf("error converting input %v for field %q: {{err}}", value, field), err)
+				return fmt.Errorf("error converting input %v for field %q: %w", value, field, err)
 			}
 		default:
 			return fmt.Errorf("unknown field type %q for field %q", schema.Type, field)

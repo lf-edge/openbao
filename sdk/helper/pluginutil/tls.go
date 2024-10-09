@@ -11,9 +11,9 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"fmt"
 	"time"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-uuid"
 	"github.com/openbao/openbao/sdk/v2/helper/certutil"
 )
@@ -54,7 +54,7 @@ func generateCert() ([]byte, *ecdsa.PrivateKey, error) {
 
 	certBytes, err := x509.CreateCertificate(rand.Reader, template, template, key.Public(), key)
 	if err != nil {
-		return nil, nil, errwrap.Wrapf("unable to generate client certificate: {{err}}", err)
+		return nil, nil, fmt.Errorf("unable to generate client certificate: %w", err)
 	}
 
 	return certBytes, key, nil
@@ -65,7 +65,7 @@ func generateCert() ([]byte, *ecdsa.PrivateKey, error) {
 func createClientTLSConfig(certBytes []byte, key *ecdsa.PrivateKey) (*tls.Config, error) {
 	clientCert, err := x509.ParseCertificate(certBytes)
 	if err != nil {
-		return nil, errwrap.Wrapf("error parsing generated plugin certificate: {{err}}", err)
+		return nil, fmt.Errorf("error parsing generated plugin certificate: %w", err)
 	}
 
 	cert := tls.Certificate{

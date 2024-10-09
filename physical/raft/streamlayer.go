@@ -164,8 +164,6 @@ type raftLayer struct {
 
 	logger log.Logger
 
-	dialerFunc func(string, time.Duration) (net.Conn, error)
-
 	// TLS config
 	keyring         *TLSKeyring
 	clusterListener cluster.ClusterHook

@@ -26,7 +26,6 @@ import (
 
 var (
 	port                 uint
-	ignoreStopSignal     bool
 	sleepAfterStopSignal time.Duration
 	useSigusr1StopSignal bool
 	stopAfter            time.Duration

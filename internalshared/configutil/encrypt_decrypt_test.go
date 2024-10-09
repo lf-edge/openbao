@@ -13,9 +13,6 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func getAEADTestKMS(t *testing.T) {
-}
-
 func TestEncryptParams(t *testing.T) {
 	rawStr := `
 storage "consul" {

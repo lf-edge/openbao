@@ -204,7 +204,7 @@ func ParseLogLevel(logLevel string) (hclog.Level, error) {
 	case "err", "error":
 		result = hclog.Error
 	default:
-		return -1, errors.New(fmt.Sprintf("unknown log level: %s", logLevel))
+		return -1, fmt.Errorf("unknown log level: %s", logLevel)
 	}
 
 	return result, nil

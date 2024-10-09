@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/hashicorp/errwrap"
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	multierror "github.com/hashicorp/go-multierror"
 	rootcerts "github.com/hashicorp/go-rootcerts"
@@ -151,7 +150,7 @@ func LoadSSHHelperConfig(path string) (*SSHHelperConfig, error) {
 func ParseSSHHelperConfig(contents string) (*SSHHelperConfig, error) {
 	root, err := hcl.Parse(string(contents))
 	if err != nil {
-		return nil, errwrap.Wrapf("error parsing config: {{err}}", err)
+		return nil, fmt.Errorf("error parsing config: %w", err)
 	}
 
 	list, ok := root.Node.(*ast.ObjectList)

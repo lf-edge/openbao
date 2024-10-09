@@ -355,7 +355,3 @@ func TestCert_RoleResolveOCSP(t *testing.T) {
 		})
 	}
 }
-
-func serialFromBigInt(serial *big.Int) string {
-	return strings.TrimSpace(certutil.GetHexFormatted(serial.Bytes(), ":"))
-}
