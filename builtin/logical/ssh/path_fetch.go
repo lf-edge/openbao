@@ -10,6 +10,7 @@ import (
 	"github.com/openbao/openbao/sdk/v2/logical"
 )
 
+// NOTE: Fetch public_key endpoint
 func pathFetchPublicKey(b *backend) *framework.Path {
 	return &framework.Path{
 		Pattern: `public_key`,

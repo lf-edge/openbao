@@ -13,11 +13,24 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"regexp"
 	"strings"
 
 	"github.com/hashicorp/go-secure-stdlib/parseutil"
+	"github.com/openbao/openbao/sdk/v2/framework"
+	"github.com/openbao/openbao/sdk/v2/helper/errutil"
 	"github.com/openbao/openbao/sdk/v2/logical"
 	"golang.org/x/crypto/ssh"
+)
+
+const (
+	issuerRefParam = "issuer_ref"
+)
+
+var (
+	nameMatcher          = regexp.MustCompile("^" + framework.GenericNameRegex(issuerRefParam) + "$")
+	errIssuerNameInUse   = errutil.UserError{Err: "issuer name already in use"}
+	errIssuerNameIsEmpty = errutil.UserError{Err: "expected non-empty issuer name"}
 )
 
 // Creates a new RSA key pair with the given key length. The private key will be
@@ -134,4 +147,104 @@ func substQuery(tpl string, data map[string]string) string {
 	}
 
 	return tpl
+}
+
+// keys parses the input parameters and returns the public and private keys
+// by either generating them or using the provided ones.
+// NOTE: The code is exactly the same as the one in `pathConfigCAUpdate`.
+func (b *backend) keys(data *framework.FieldData) (string, string, error) {
+	var err error
+	publicKey := data.Get("public_key").(string)
+	privateKey := data.Get("private_key").(string)
+
+	var generateSigningKey bool
+
+	generateSigningKeyRaw, ok := data.GetOk("generate_signing_key")
+	switch {
+	// explicitly set true
+	case ok && generateSigningKeyRaw.(bool):
+		if publicKey != "" || privateKey != "" {
+			return "", "", errors.New("public_key and private_key must not be set when generate_signing_key is set to true")
+		}
+
+		generateSigningKey = true
+
+	// explicitly set to false, or not set and we have both a public and private key
+	case ok, publicKey != "" && privateKey != "":
+		if publicKey == "" {
+			return "", "", errors.New("missing public_key")
+		}
+
+		if privateKey == "" {
+			return "", "", errors.New("missing private_key")
+		}
+
+		_, err := ssh.ParsePrivateKey([]byte(privateKey))
+		if err != nil {
+			return "", "", fmt.Errorf("Unable to parse private_key as an SSH private key: %v", err)
+		}
+
+		_, err = parsePublicSSHKey(publicKey)
+		if err != nil {
+			return "", "", fmt.Errorf("Unable to parse public_key as an SSH public key: %w", err)
+		}
+
+	// not set and no public/private key provided so generate
+	case publicKey == "" && privateKey == "":
+		generateSigningKey = true
+
+	// not set, but one or the other supplied
+	default:
+		return "", "", errors.New("only one of public_key and private_key set; both must be set to use, or both must be blank to auto-generate")
+	}
+
+	if generateSigningKey {
+		keyType := data.Get("key_type").(string)
+		keyBits := data.Get("key_bits").(int)
+
+		publicKey, privateKey, err = generateSSHKeyPair(b.Backend.GetRandomReader(), keyType, keyBits)
+		if err != nil {
+			return "", "", errutil.InternalError{Err: err.Error()}
+		}
+	}
+
+	if publicKey == "" || privateKey == "" {
+		return "", "", errutil.InternalError{Err: "failed to generate or parse the keys"}
+	}
+
+	return publicKey, privateKey, nil
+}
+
+func getIssuerRef(data *framework.FieldData) string {
+	value := strings.TrimSpace(data.Get(issuerRefParam).(string))
+	if strings.EqualFold(value, defaultRef) {
+		return defaultRef
+	}
+	return value
+}
+
+func getIssuerName(sc *storageContext, data *framework.FieldData) (string, error) {
+	issuerName := ""
+	issuerNameIface, ok := data.GetOk("issuer_name")
+	if ok {
+		issuerName = strings.TrimSpace(issuerNameIface.(string))
+		if len(issuerName) == 0 {
+			return issuerName, errIssuerNameIsEmpty
+		}
+		if strings.ToLower(issuerName) == defaultRef {
+			return issuerName, errutil.UserError{Err: "reserved keyword 'default' can not be used as issuer name"}
+		}
+		if !nameMatcher.MatchString(issuerName) {
+			return issuerName, errutil.UserError{Err: "issuer name contained invalid characters"}
+		}
+		issuerId, err := sc.resolveIssuerReference(issuerName)
+		if err == nil {
+			return issuerName, errIssuerNameInUse
+		}
+
+		if err != nil && issuerId != IssuerRefNotFound {
+			return issuerName, errutil.InternalError{Err: err.Error()}
+		}
+	}
+	return issuerName, nil
 }

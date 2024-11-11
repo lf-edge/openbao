@@ -25,15 +25,6 @@ import (
 	"github.com/mikesmitty/edkey"
 )
 
-const (
-	caPublicKey                       = "ca_public_key"
-	caPrivateKey                      = "ca_private_key"
-	caPublicKeyStoragePath            = "config/ca_public_key"
-	caPublicKeyStoragePathDeprecated  = "public_key"
-	caPrivateKeyStoragePath           = "config/ca_private_key"
-	caPrivateKeyStoragePathDeprecated = "config/ca_bundle"
-)
-
 type keyStorageEntry struct {
 	Key string `json:"key" structs:"key" mapstructure:"key"`
 }
@@ -245,20 +236,25 @@ func (b *backend) pathConfigCAUpdate(ctx context.Context, req *logical.Request, 
 		return nil, errors.New("failed to generate or parse the keys")
 	}
 
+	// NOTE: This is fetching a key entry on `ca_public_key`
 	publicKeyEntry, err := caKey(ctx, req.Storage, caPublicKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read CA public key: %w", err)
 	}
 
+	// NOTE: This is fetching a key entry on `ca_private_key`
 	privateKeyEntry, err := caKey(ctx, req.Storage, caPrivateKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read CA private key: %w", err)
 	}
 
+	// NOTE: This error message isn't aligned with what's written in the documention;
+	// "If you already set a certificate and a key, they will be overridden"
 	if (publicKeyEntry != nil && publicKeyEntry.Key != "") || (privateKeyEntry != nil && privateKeyEntry.Key != "") {
 		return logical.ErrorResponse("keys are already configured; delete them before reconfiguring"), nil
 	}
 
+	// NOTE: This is creating an entry for the public key with the `config/ca_public_key`;
 	entry, err := logical.StorageEntryJSON(caPublicKeyStoragePath, &keyStorageEntry{
 		Key: publicKey,
 	})
@@ -272,6 +268,9 @@ func (b *backend) pathConfigCAUpdate(ctx context.Context, req *logical.Request, 
 		return nil, err
 	}
 
+	// NOTE: I believe we could now leverage transaction to persist the public and private key in the same 'operation'??
+
+	// NOTE: This is creating an entry for the private key with the `config/ca_private_key`;
 	entry, err = logical.StorageEntryJSON(caPrivateKeyStoragePath, &keyStorageEntry{
 		Key: privateKey,
 	})
@@ -280,6 +279,7 @@ func (b *backend) pathConfigCAUpdate(ctx context.Context, req *logical.Request, 
 	}
 
 	// Save the private key
+	// NOTE: This is where the key is actually being persisted;
 	err = req.Storage.Put(ctx, entry)
 	if err != nil {
 		var mErr *multierror.Error
@@ -296,6 +296,7 @@ func (b *backend) pathConfigCAUpdate(ctx context.Context, req *logical.Request, 
 		return nil, err
 	}
 
+	// If its a generated key, return the `public_key`
 	if generateSigningKey {
 		response := &logical.Response{
 			Data: map[string]interface{}{
