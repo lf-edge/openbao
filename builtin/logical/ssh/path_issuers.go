@@ -3,6 +3,7 @@ package ssh
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/hashicorp/go-uuid"
 	"github.com/openbao/openbao/sdk/v2/framework"
@@ -20,22 +21,27 @@ func pathIssuers(b *backend) *framework.Path {
 				Type:        framework.TypeString,
 				Description: `Issuer reference. It can be the issuer's unique identifier, or the optionally given name.`,
 			},
+			"issuer_name": {
+				Type:        framework.TypeString,
+				Required:    false,
+				Description: `Issuer name.`,
+			},
 		},
 		Operations: map[logical.Operation]framework.OperationHandler{
 			logical.ReadOperation: &framework.PathOperation{
-				Callback: b.pathIssuerRead,
+				Callback: b.pathReadIssuerHandler,
 				DisplayAttrs: &framework.DisplayAttributes{
 					OperationVerb: "read",
 				},
 			},
 			logical.UpdateOperation: &framework.PathOperation{
-				Callback: b.pathIssuerUpdate,
+				Callback: b.pathUpdateIssuerHandler,
 				DisplayAttrs: &framework.DisplayAttributes{
 					OperationVerb: "update",
 				},
 			},
 			logical.DeleteOperation: &framework.PathOperation{
-				Callback: b.pathIssuerDelete,
+				Callback: b.pathDeleteIssuerHandler,
 				DisplayAttrs: &framework.DisplayAttributes{
 					OperationVerb: "delete",
 				},
@@ -88,7 +94,7 @@ func pathSubmitIssuer(b *backend) *framework.Path {
 
 		Operations: map[logical.Operation]framework.OperationHandler{
 			logical.UpdateOperation: &framework.PathOperation{
-				Callback: b.pathIssuerWrite,
+				Callback: b.pathWriteIssuerHandler,
 				DisplayAttrs: &framework.DisplayAttributes{
 					OperationVerb:   "submit",
 					OperationSuffix: "issuer",
@@ -101,7 +107,57 @@ func pathSubmitIssuer(b *backend) *framework.Path {
 	}
 }
 
-func (b *backend) pathIssuerRead(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func pathListIssuers(b *backend) *framework.Path {
+	return &framework.Path{
+		Pattern: "issuers/?$",
+
+		DisplayAttrs: &framework.DisplayAttributes{
+			OperationPrefix: operationPrefixSSH,
+			OperationSuffix: "issuers",
+		},
+
+		Fields: map[string]*framework.FieldSchema{
+			"after": {
+				Type:        framework.TypeString,
+				Required:    false,
+				Description: `Optional entry to list begin listing after, not required to exist.`,
+			},
+			"limit": {
+				Type:        framework.TypeInt,
+				Required:    false,
+				Description: `Optional number of entries to return; defaults to all entries.`,
+			},
+		},
+
+		Operations: map[logical.Operation]framework.OperationHandler{
+			logical.ListOperation: &framework.PathOperation{
+				Callback: b.pathListIssuersHandler,
+				Responses: map[int][]framework.Response{
+					http.StatusOK: {{
+						Description: "OK",
+						Fields: map[string]*framework.FieldSchema{
+							"keys": {
+								Type:        framework.TypeStringSlice,
+								Description: `A list of keys`,
+								Required:    true,
+							},
+							"key_info": {
+								Type:        framework.TypeMap,
+								Description: `Key info with issuer identifier`,
+								Required:    false,
+							},
+						},
+					}},
+				},
+			},
+		},
+
+		HelpSynopsis:    "",
+		HelpDescription: "",
+	}
+}
+
+func (b *backend) pathReadIssuerHandler(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	issuerRef := getIssuerRef(d)
 
 	sc := b.makeStorageContext(ctx, req.Storage)
@@ -125,7 +181,7 @@ func (b *backend) pathIssuerRead(ctx context.Context, req *logical.Request, d *f
 	return respondReadIssuer(entry)
 }
 
-func (b *backend) pathIssuerUpdate(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func (b *backend) pathUpdateIssuerHandler(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	// Since we're planning on updating issuers here, grab the lock so we've
 	// got a consistent view.
 	b.issuersLock.Lock()
@@ -182,7 +238,7 @@ func (b *backend) pathIssuerUpdate(ctx context.Context, req *logical.Request, d 
 	return respondReadIssuer(issuer)
 }
 
-func (b *backend) pathIssuerDelete(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func (b *backend) pathDeleteIssuerHandler(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	// Since we're planning on updating issuers here, grab the lock so we've
 	// got a consistent view.
 	b.issuersLock.Lock()
@@ -224,7 +280,7 @@ func (b *backend) pathIssuerDelete(ctx context.Context, req *logical.Request, d 
 	return response, nil
 }
 
-func (b *backend) pathIssuerWrite(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func (b *backend) pathWriteIssuerHandler(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	publicKey, privateKey, err := b.keys(d)
 	if err != nil {
 		switch err.(type) {
@@ -253,26 +309,59 @@ func (b *backend) pathIssuerWrite(ctx context.Context, req *logical.Request, d *
 		}
 	}
 
-	err = sc.writeIssuer(
-		&issuerEntry{
-			ID:         issuerID(id),
-			Name:       issuerName,
-			PublicKey:  publicKey,
-			PrivateKey: privateKey,
-			Version:    1,
-		})
+	entry := &issuerEntry{
+		ID:         issuerID(id),
+		Name:       issuerName,
+		PublicKey:  publicKey,
+		PrivateKey: privateKey,
+		Version:    1,
+	}
+
+	err = sc.writeIssuer(entry)
 	if err != nil {
 		return nil, fmt.Errorf("failed to persist the issuer: %w", err)
 	}
 
 	// NOTE: Differing from the original implementation, we return the issuer's data always.
-	return &logical.Response{
-		Data: map[string]interface{}{
-			"id":         id,
-			"name":       issuerName,
-			"public_key": publicKey,
-		},
-	}, nil
+	return respondReadIssuer(entry)
+}
+
+func (b *backend) pathListIssuersHandler(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+	var responseKeys []string
+	responseInfo := make(map[string]interface{})
+
+	after := d.Get("after").(string)
+	limit := d.Get("limit").(int)
+
+	sc := b.makeStorageContext(ctx, req.Storage)
+	entries, err := sc.listIssuersPage(after, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	config, err := sc.getIssuersConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	// For each issuer, we need not only the identifier (as returned by
+	// listIssuers), but also the name of the issuer and its public key.
+	// This means we have to fetch the actual issuer object as well.
+	for _, identifier := range entries {
+		issuer, err := sc.fetchIssuerById(identifier)
+		if err != nil {
+			return nil, err
+		}
+
+		responseKeys = append(responseKeys, string(identifier))
+		responseInfo[string(identifier)] = map[string]interface{}{
+			"issuer_name": issuer.Name,
+			"is_default":  identifier == config.DefaultIssuerID,
+			"public_key":  issuer.PublicKey,
+		}
+	}
+
+	return logical.ListResponseWithInfo(responseKeys, responseInfo), nil
 }
 
 func respondReadIssuer(issuer *issuerEntry) (*logical.Response, error) {

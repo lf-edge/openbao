@@ -72,6 +72,7 @@ func Backend(conf *logical.BackendConfig) (*backend, error) {
 			pathCleanupKeys(&b),
 			pathIssuers(&b),
 			pathSubmitIssuer(&b),
+			pathListIssuers(&b),
 		},
 
 		Secrets: []*framework.Secret{
