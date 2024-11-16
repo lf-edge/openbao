@@ -70,6 +70,7 @@ func Backend(conf *logical.BackendConfig) (*backend, error) {
 			pathIssue(&b),
 			pathFetchPublicKey(&b),
 			pathCleanupKeys(&b),
+			pathConfigIssuers(&b),
 			pathIssuers(&b),
 			pathSubmitIssuer(&b),
 			pathListIssuers(&b),

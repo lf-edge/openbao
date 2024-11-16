@@ -173,7 +173,9 @@ func (sc *storageContext) fetchIssuerById(issuerId issuerID) (*issuerEntry, erro
 	return &issuer, nil
 }
 
-// NOTE: Why are messages returned in the issuer id?
+// Lookup within storage the value of reference, assuming the string is a
+// reference to an issuer entry, returning the converted issuerID or an error
+// if not found.
 func (sc *storageContext) resolveIssuerReference(ref string) (issuerID, error) {
 	if ref == defaultRef {
 		// If reference is 'default', fetch the default issuer ID from the configuration
