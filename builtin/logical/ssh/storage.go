@@ -222,3 +222,21 @@ func (sc *storageContext) resolveIssuerReference(ref string) (issuerID, error) {
 	// If the reference is not an ID or a name, return an error
 	return IssuerRefNotFound, errutil.UserError{Err: fmt.Sprintf("unable to find issuer for reference: %v", ref)}
 }
+
+// purgeIssuers deletes all pre-submitted issuers
+// NOTE: Transactions would be useful here. For now, we will try
+// to remove each issuer and return an error if one fails.
+func (sc *storageContext) purgeIssuers() error {
+	issuers, err := sc.listIssuers()
+	if err != nil {
+		return err
+	}
+
+	for _, id := range issuers {
+		if _, err := sc.deleteIssuer(id); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

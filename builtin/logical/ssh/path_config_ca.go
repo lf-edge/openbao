@@ -17,7 +17,7 @@ import (
 	"fmt"
 	"io"
 
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-uuid"
 	"github.com/openbao/openbao/sdk/v2/framework"
 	"github.com/openbao/openbao/sdk/v2/logical"
 	"golang.org/x/crypto/ssh"
@@ -96,31 +96,41 @@ Read operations will return the public key, if already stored/generated.`,
 }
 
 func (b *backend) pathConfigCARead(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	publicKeyEntry, err := caKey(ctx, req.Storage, caPublicKey)
+	sc := b.makeStorageContext(ctx, req.Storage)
+
+	// NOTE: Transaction
+	config, err := sc.getIssuersConfig()
 	if err != nil {
-		return nil, fmt.Errorf("failed to read CA public key: %w", err)
+		return nil, fmt.Errorf("failed to fetch the issuer's config: %w", err)
 	}
 
-	if publicKeyEntry == nil {
-		return logical.ErrorResponse("keys haven't been configured yet"), nil
+	if config.DefaultIssuerID == "" {
+		return logical.ErrorResponse("A 'default' issuer hasn't been configured yet"), nil
 	}
 
-	response := &logical.Response{
-		Data: map[string]interface{}{
-			"public_key": publicKeyEntry.Key,
-		},
+	issuer, err := sc.fetchIssuerById(config.DefaultIssuerID)
+	if err != nil {
+		return nil, err
 	}
 
-	return response, nil
+	return respondReadIssuer(issuer)
 }
 
 func (b *backend) pathConfigCADelete(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	if err := req.Storage.Delete(ctx, caPrivateKeyStoragePath); err != nil {
-		return nil, err
+	// Since we're planning on updating issuers here, grab the lock so we've
+	// got a consistent view.
+	b.issuersLock.Lock()
+	defer b.issuersLock.Unlock()
+
+	sc := b.makeStorageContext(ctx, req.Storage)
+
+	err := sc.purgeIssuers()
+	if err != nil {
+		return nil, fmt.Errorf("failed to delete issuers: %w", err)
 	}
-	if err := req.Storage.Delete(ctx, caPublicKeyStoragePath); err != nil {
-		return nil, err
-	}
+
+	// NOTE: Add a warning mentioning the change in behaviour or is updating the docs enough?
+
 	return nil, nil
 }
 
@@ -177,137 +187,48 @@ func caKey(ctx context.Context, storage logical.Storage, keyType string) (*keySt
 }
 
 func (b *backend) pathConfigCAUpdate(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	var err error
-	publicKey := data.Get("public_key").(string)
-	privateKey := data.Get("private_key").(string)
+	// Since we're planning on updating issuers here, grab the lock so we've
+	// got a consistent view.
+	b.issuersLock.Lock()
+	defer b.issuersLock.Unlock()
 
-	var generateSigningKey bool
+	sc := b.makeStorageContext(ctx, req.Storage)
 
-	generateSigningKeyRaw, ok := data.GetOk("generate_signing_key")
-	switch {
-	// explicitly set true
-	case ok && generateSigningKeyRaw.(bool):
-		if publicKey != "" || privateKey != "" {
-			return logical.ErrorResponse("public_key and private_key must not be set when generate_signing_key is set to true"), nil
-		}
-
-		generateSigningKey = true
-
-	// explicitly set to false, or not set and we have both a public and private key
-	case ok, publicKey != "" && privateKey != "":
-		if publicKey == "" {
-			return logical.ErrorResponse("missing public_key"), nil
-		}
-
-		if privateKey == "" {
-			return logical.ErrorResponse("missing private_key"), nil
-		}
-
-		_, err := ssh.ParsePrivateKey([]byte(privateKey))
-		if err != nil {
-			return logical.ErrorResponse(fmt.Sprintf("Unable to parse private_key as an SSH private key: %v", err)), nil
-		}
-
-		_, err = parsePublicSSHKey(publicKey)
-		if err != nil {
-			return logical.ErrorResponse(fmt.Sprintf("Unable to parse public_key as an SSH public key: %v", err)), nil
-		}
-
-	// not set and no public/private key provided so generate
-	case publicKey == "" && privateKey == "":
-		generateSigningKey = true
-
-	// not set, but one or the other supplied
-	default:
-		return logical.ErrorResponse("only one of public_key and private_key set; both must be set to use, or both must be blank to auto-generate"), nil
-	}
-
-	if generateSigningKey {
-		keyType := data.Get("key_type").(string)
-		keyBits := data.Get("key_bits").(int)
-
-		publicKey, privateKey, err = generateSSHKeyPair(b.Backend.GetRandomReader(), keyType, keyBits)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if publicKey == "" || privateKey == "" {
-		return nil, errors.New("failed to generate or parse the keys")
-	}
-
-	// NOTE: This is fetching a key entry on `ca_public_key`
-	publicKeyEntry, err := caKey(ctx, req.Storage, caPublicKey)
+	publicKey, privateKey, err := b.keys(data)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read CA public key: %w", err)
-	}
-
-	// NOTE: This is fetching a key entry on `ca_private_key`
-	privateKeyEntry, err := caKey(ctx, req.Storage, caPrivateKey)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read CA private key: %w", err)
-	}
-
-	// NOTE: This error message isn't aligned with what's written in the documention;
-	// "If you already set a certificate and a key, they will be overridden"
-	if (publicKeyEntry != nil && publicKeyEntry.Key != "") || (privateKeyEntry != nil && privateKeyEntry.Key != "") {
-		return logical.ErrorResponse("keys are already configured; delete them before reconfiguring"), nil
-	}
-
-	// NOTE: This is creating an entry for the public key with the `config/ca_public_key`;
-	entry, err := logical.StorageEntryJSON(caPublicKeyStoragePath, &keyStorageEntry{
-		Key: publicKey,
-	})
-	if err != nil {
+		// NOTE: Properly handle error
 		return nil, err
 	}
 
-	// Save the public key
-	err = req.Storage.Put(ctx, entry)
+	id, err := uuid.GenerateUUID()
 	if err != nil {
-		return nil, err
+		return nil, err // Internal error
+	}
+	issuer := &issuerEntry{
+		ID:         issuerID(id),
+		Name:       id,
+		PublicKey:  publicKey,
+		PrivateKey: privateKey,
+		Version:    1,
 	}
 
-	// NOTE: I believe we could now leverage transaction to persist the public and private key in the same 'operation'??
-
-	// NOTE: This is creating an entry for the private key with the `config/ca_private_key`;
-	entry, err = logical.StorageEntryJSON(caPrivateKeyStoragePath, &keyStorageEntry{
-		Key: privateKey,
-	})
+	// NOTE: Transaction here
+	err = sc.writeIssuer(issuer)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to persist the issuer: %w", err)
 	}
 
-	// Save the private key
-	// NOTE: This is where the key is actually being persisted;
-	err = req.Storage.Put(ctx, entry)
+	response, err := respondReadIssuer(issuer)
+
+	// Update issuers config to set new issuers as the 'default'
+	err = sc.setIssuersConfig(&issuerConfigEntry{DefaultIssuerID: issuerID(id)})
 	if err != nil {
-		var mErr *multierror.Error
-
-		mErr = multierror.Append(mErr, fmt.Errorf("failed to store CA private key: %w", err))
-
-		// If storing private key fails, the corresponding public key should be
-		// removed
-		if delErr := req.Storage.Delete(ctx, caPublicKeyStoragePath); delErr != nil {
-			mErr = multierror.Append(mErr, fmt.Errorf("failed to cleanup CA public key: %w", delErr))
-			return nil, mErr
-		}
-
-		return nil, err
+		// Even if the new issuer fails to be set as default, we want to return
+		// the newly submitted issuers with an warning;
+		response.AddWarning(fmt.Sprintf("Unable to fetch default issuers configuration to update default issuer if necessary: %s", err.Error()))
 	}
 
-	// If its a generated key, return the `public_key`
-	if generateSigningKey {
-		response := &logical.Response{
-			Data: map[string]interface{}{
-				"public_key": publicKey,
-			},
-		}
-
-		return response, nil
-	}
-
-	return nil, nil
+	return response, nil
 }
 
 func generateSSHKeyPair(randomSource io.Reader, keyType string, keyBits int) (string, string, error) {

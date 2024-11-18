@@ -398,6 +398,7 @@ func pathRoles(b *backend) *framework.Path {
 			},
 			"issuer_ref": {
 				Type: framework.TypeString,
+				// NOTE: Review this description
 				Description: `Reference to the issuer used to sign requests
 serviced by this role.`,
 			},
@@ -803,6 +804,7 @@ func (b *backend) pathRoleList(ctx context.Context, req *logical.Request, data *
 		if keyType, ok := roleInfo["key_type"]; ok {
 			keyInfo[entry] = map[string]interface{}{
 				"key_type": keyType,
+				// NOTE: Also default `issuer_ref`?
 			}
 		}
 	}
