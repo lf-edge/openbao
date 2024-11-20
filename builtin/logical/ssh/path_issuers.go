@@ -162,6 +162,42 @@ func pathListIssuers(b *backend) *framework.Path {
 	}
 }
 
+func pathGetIssuerUnauthenticated(b *backend) *framework.Path {
+	return &framework.Path{
+		Pattern: "issuer/" + framework.GenericNameRegex("issuer_ref") + "/public_key",
+
+		DisplayAttrs: &framework.DisplayAttributes{
+			OperationPrefix: operationPrefixSSH,
+			// OperationSuffix: "issuers",
+		},
+
+		Fields: map[string]*framework.FieldSchema{
+			"issuer_ref": {
+				Type:        framework.TypeString,
+				Description: `Issuer reference. It can be the issuer's unique identifier, or the optionally given name.`,
+			},
+		},
+
+		Operations: map[logical.Operation]framework.OperationHandler{
+			logical.ReadOperation: &framework.PathOperation{
+				Callback: b.pathReadIssuerHandler,
+				Responses: map[int][]framework.Response{
+					http.StatusOK: {
+						{
+							Description: "OK",
+							// TODO: Add
+							Fields: map[string]*framework.FieldSchema{},
+						},
+					},
+				},
+			},
+		},
+
+		HelpSynopsis:    "",
+		HelpDescription: "",
+	}
+}
+
 func (b *backend) pathReadIssuerHandler(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	issuerRef := getIssuerRef(d)
 

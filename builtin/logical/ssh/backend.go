@@ -45,6 +45,7 @@ func Backend(conf *logical.BackendConfig) (*backend, error) {
 			Unauthenticated: []string{
 				"verify",
 				"public_key",
+				"issuer/+/public_key",
 			},
 
 			LocalStorage: []string{
@@ -74,6 +75,7 @@ func Backend(conf *logical.BackendConfig) (*backend, error) {
 			pathIssuers(&b),
 			pathSubmitIssuer(&b),
 			pathListIssuers(&b),
+			pathGetIssuerUnauthenticated(&b),
 		},
 
 		Secrets: []*framework.Secret{
