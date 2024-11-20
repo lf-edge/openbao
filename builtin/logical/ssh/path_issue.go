@@ -109,6 +109,8 @@ func (b *backend) pathIssue(ctx context.Context, req *logical.Request, data *fra
 }
 
 func (b *backend) pathIssueCertificate(ctx context.Context, req *logical.Request, data *framework.FieldData, role *sshRole, keySpecs *keySpecs) (*logical.Response, error) {
+	sc := b.makeStorageContext(ctx, req.Storage)
+
 	publicKey, privateKey, err := generateSSHKeyPair(rand.Reader, keySpecs.Type, keySpecs.Bits)
 	if err != nil {
 		return nil, err
@@ -120,7 +122,7 @@ func (b *backend) pathIssueCertificate(ctx context.Context, req *logical.Request
 		return logical.ErrorResponse(fmt.Sprintf("failed to parse public_key as SSH key: %s", err)), nil
 	}
 
-	response, err := b.pathSignIssueCertificateHelper(ctx, req, data, role, userPublicKey)
+	response, err := b.pathSignIssueCertificateHelper(sc, req, data, role, userPublicKey)
 	if err != nil {
 		return nil, err
 	}

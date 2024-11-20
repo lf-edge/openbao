@@ -248,3 +248,17 @@ func getIssuerName(sc *storageContext, data *framework.FieldData) (string, error
 	}
 	return issuerName, nil
 }
+
+// NOTE: Experimental
+func handleStorageContextErr(err error) (*logical.Response, error) {
+	switch err.(type) {
+	case errutil.UserError:
+		// NOTE: Doesn't worked as I expected??
+		// return logical.ErrorResponse(err.Error()), logical.ErrInvalidRequest
+		return logical.ErrorResponse(err.Error()), nil
+	case errutil.InternalError:
+		return nil, err
+	default:
+		return nil, err
+	}
+}

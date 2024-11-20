@@ -103,5 +103,7 @@ func (b *backend) pathSignCertificate(ctx context.Context, req *logical.Request,
 		return logical.ErrorResponse(fmt.Sprintf("public_key failed to meet the key requirements: %s", err)), nil
 	}
 
-	return b.pathSignIssueCertificateHelper(ctx, req, data, role, userPublicKey)
+	sc := b.makeStorageContext(ctx, req.Storage)
+
+	return b.pathSignIssueCertificateHelper(sc, req, data, role, userPublicKey)
 }

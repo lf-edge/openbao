@@ -222,6 +222,25 @@ func (sc *storageContext) resolveIssuerReference(ref string) (issuerID, error) {
 	return IssuerRefNotFound, errutil.UserError{Err: fmt.Sprintf("unable to find issuer for reference: %v", ref)}
 }
 
+// fetchDefaultIssuer fetches the default issuer if set, otherwise nil is returned
+func (sc *storageContext) fetchDefaultIssuer() (*issuerEntry, error) {
+	config, err := sc.getIssuersConfig()
+	if err != nil {
+		return nil, errutil.InternalError{Err: fmt.Sprintf("unable to fetch the issuer's config: %w", err)}
+	}
+
+	if config.DefaultIssuerID == "" {
+		return nil, errutil.UserError{Err: "A 'default' issuer hasn't been configured yet"}
+	}
+
+	issuer, err := sc.fetchIssuerById(config.DefaultIssuerID)
+	if err != nil {
+		return nil, errutil.InternalError{Err: fmt.Sprintf("unable to fetch the default issuer: %w", err)}
+	}
+
+	return issuer, nil
+}
+
 // purgeIssuers deletes all pre-submitted issuers
 // NOTE: Transactions would be useful here. For now, we will try
 // to remove each issuer and return an error if one fails.
