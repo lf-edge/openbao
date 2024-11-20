@@ -90,6 +90,11 @@ func pathSubmitIssuer(b *backend) *framework.Path {
 				Description: `Specifies the desired key bits when generating variable-length keys (such as when key_type="ssh-rsa") or which NIST P-curve to use when key_type="ec" (256, 384, or 521).`,
 				Default:     0,
 			},
+			"set_default": {
+				Type:        framework.TypeBool,
+				Description: `If true, this issuer will be set as the default issuer for performing operations. Only one issuer can be the default issuer and, if there's one set, it will be overrided.`,
+				Default:     false,
+			},
 		},
 
 		Operations: map[logical.Operation]framework.OperationHandler{
@@ -309,7 +314,7 @@ func (b *backend) pathWriteIssuerHandler(ctx context.Context, req *logical.Reque
 		}
 	}
 
-	entry := &issuerEntry{
+	issuer := &issuerEntry{
 		ID:         issuerID(id),
 		Name:       issuerName,
 		PublicKey:  publicKey,
@@ -317,13 +322,28 @@ func (b *backend) pathWriteIssuerHandler(ctx context.Context, req *logical.Reque
 		Version:    1,
 	}
 
-	err = sc.writeIssuer(entry)
+	// NOTE: Transaction (Same as what we have in `path_config_ca`)
+	err = sc.writeIssuer(issuer)
 	if err != nil {
 		return nil, fmt.Errorf("failed to persist the issuer: %w", err)
 	}
 
+	// NOTE: Return `is_default`?
+	response, err := respondReadIssuer(issuer)
+
+	setDefault := d.Get("set_default").(bool)
+	if setDefault {
+		// Update issuers config to set new issuers as the 'default'
+		err = sc.setIssuersConfig(&issuerConfigEntry{DefaultIssuerID: issuerID(id)})
+		if err != nil {
+			// Even if the new issuer fails to be set as default, we want to return
+			// the newly submitted issuers with an warning;
+			response.AddWarning(fmt.Sprintf("Unable to fetch default issuers configuration to update default issuer if necessary: %s", err.Error()))
+		}
+	}
+
 	// NOTE: Differing from the original implementation, we return the issuer's data always.
-	return respondReadIssuer(entry)
+	return response, nil
 }
 
 func (b *backend) pathListIssuersHandler(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {

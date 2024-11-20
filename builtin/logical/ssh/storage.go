@@ -47,8 +47,7 @@ type issuerEntry struct {
 }
 
 type issuerConfigEntry struct {
-	DefaultIssuerID            issuerID `json:"default"`
-	DefaultFollowsLatestIssuer bool     `json:"fefault_follows_latest_issuer"`
+	DefaultIssuerID issuerID `json:"default"`
 }
 
 type storageContext struct {
