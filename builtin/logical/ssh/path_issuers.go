@@ -263,6 +263,7 @@ func (b *backend) pathUpdateIssuerHandler(ctx context.Context, req *logical.Requ
 		return respondReadIssuer(issuer)
 	}
 
+	oldName := issuer.Name
 	issuer.Name = newName
 
 	err = sc.writeIssuer(issuer)
@@ -270,13 +271,10 @@ func (b *backend) pathUpdateIssuerHandler(ctx context.Context, req *logical.Requ
 		return nil, err
 	}
 
-	// response, err := respondReadIssuer(issuer)
-	// if newName != oldName {
-	// 	addWarningOnDereferencing(sc, oldName, response)
-	// }
+	response, _ := respondReadIssuer(issuer)
+	addWarningOnDereferencing(sc, oldName, response)
 
-	// return response, err
-	return respondReadIssuer(issuer)
+	return response, nil
 }
 
 func (b *backend) pathDeleteIssuerHandler(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
@@ -298,24 +296,25 @@ func (b *backend) pathDeleteIssuerHandler(ctx context.Context, req *logical.Requ
 		return nil, err
 	}
 
-	// issuer, err := sc.fetchIssuerById(id)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// if issuer.Name != "" {
-	// 	addWarningOnDereferencing(sc, issuer.Name, response)
-	// }
-	// addWarningOnDereferencing(sc, string(issuer.ID), response)
+	response := &logical.Response{}
+
+	issuer, err := sc.fetchIssuerById(id)
+	if err != nil {
+		return nil, err
+	}
+	if issuer.Name != "" {
+		addWarningOnDereferencing(sc, issuer.Name, response)
+	}
+	addWarningOnDereferencing(sc, string(issuer.ID), response)
 
 	wasDefault, err := sc.deleteIssuer(id)
 	if err != nil {
 		return nil, err
 	}
 
-	response := &logical.Response{}
 	if wasDefault {
 		response.AddWarning(fmt.Sprintf("Deleted issuer %v (via issuer_ref %v); this was configured as the default issuer. Operations without an explicit issuer will not work until a new default is configured.", id, issuerRef))
-		// addWarningOnDereferencing(sc, defaultRef, response)
+		addWarningOnDereferencing(sc, defaultRef, response)
 	}
 
 	return response, nil
@@ -434,17 +433,17 @@ func respondReadIssuer(issuer *issuerEntry) (*logical.Response, error) {
 	return response, nil
 }
 
-// func addWarningOnDereferencing(sc *storageContext, name string, resp *logical.Response) {
-// 	timeout, inUseBy, err := sc.checkForRolesReferencing(name)
-// 	if err != nil || timeout {
-// 		if inUseBy == 0 {
-// 			resp.AddWarning(fmt.Sprint("Unable to check if any roles referenced this issuer by ", name))
-// 		} else {
-// 			resp.AddWarning(fmt.Sprint("The name ", name, " was in use by at least ", inUseBy, " roles"))
-// 		}
-// 	} else {
-// 		if inUseBy > 0 {
-// 			resp.AddWarning(fmt.Sprint(inUseBy, " roles reference ", name))
-// 		}
-// 	}
-// }
+func addWarningOnDereferencing(sc *storageContext, name string, resp *logical.Response) {
+	timeout, inUseBy, err := sc.checkForRolesReferencingIssuer(name)
+	if err != nil || timeout {
+		if inUseBy == 0 {
+			resp.AddWarning(fmt.Sprintf("Unable to check if any roles referenced this issuer by '%s'", name))
+		} else {
+			resp.AddWarning(fmt.Sprint("The name '%s' was in use by at least %d roles", name, inUseBy))
+		}
+	} else {
+		if inUseBy > 0 {
+			resp.AddWarning(fmt.Sprintf("%d roles reference '%s'", inUseBy, name))
+		}
+	}
+}

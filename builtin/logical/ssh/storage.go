@@ -24,6 +24,10 @@ const (
 	caPrivateKeyStoragePath           = "config/ca_private_key"
 	caPrivateKeyStoragePathDeprecated = "config/ca_bundle"
 
+	// NOTE: These might be to high for SSH issuers
+	maxRolesToScanOnIssuerChange = 100
+	maxRolesToFindOnIssuerChange = 10
+
 	// Used as a quick sanity check for a reference id lookups...
 	uuidLength = 36
 )
@@ -159,7 +163,7 @@ func (sc *storageContext) fetchIssuerById(issuerId issuerID) (*issuerEntry, erro
 		return nil, errutil.InternalError{Err: fmt.Sprintf("unable to fetch ssh issuer: %v", err)}
 	}
 	if entry == nil {
-		return nil, errutil.UserError{Err: fmt.Sprintf("ssh issuer id %s does not exist", issuerId.String())}
+		return nil, errutil.UserError{Err: fmt.Sprintf("ssh issuer id '%s' does not exist", issuerId.String())}
 	}
 
 	var issuer issuerEntry
@@ -257,4 +261,42 @@ func (sc *storageContext) purgeIssuers() error {
 	}
 
 	return nil
+}
+
+// checkForRolesReferencingIssuer checks if any roles are referencing the given issuer. The reference can either be the issuer's ID or name.
+func (sc *storageContext) checkForRolesReferencingIssuer(issuerName string) (timeout bool, inUseBy int32, err error) {
+	roleEntries, err := sc.Storage.List(sc.Context, "roles/")
+	if err != nil {
+		return false, 0, err
+	}
+
+	inUseBy = 0
+	checkedRoles := 0
+
+	for _, roleName := range roleEntries {
+		entry, err := sc.Storage.Get(sc.Context, "roles/"+roleName)
+		if err != nil {
+			return false, inUseBy, err
+		}
+		// NOTE (gabrielopesantos): Not sure;
+		if entry != nil { // If nil, someone deleted an entry since we haven't taken a lock here so just continue
+			var role sshRole
+			err = entry.DecodeJSON(&role)
+			if err != nil {
+				return false, inUseBy, err
+			}
+			if role.Issuer == issuerName {
+				inUseBy = inUseBy + 1
+				if inUseBy >= maxRolesToFindOnIssuerChange {
+					return true, inUseBy, nil
+				}
+			}
+		}
+		checkedRoles = checkedRoles + 1
+		if checkedRoles >= maxRolesToScanOnIssuerChange {
+			return true, inUseBy, nil
+		}
+	}
+
+	return false, inUseBy, nil
 }

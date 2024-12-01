@@ -249,12 +249,12 @@ func getIssuerName(sc *storageContext, data *framework.FieldData) (string, error
 	return issuerName, nil
 }
 
-// NOTE: Experimental
+// handleStorageContextErr is a small helper function to automatically return
+// internal failed operations as errors, 500 status codes, and users errors
+// as responses, with 400 status code.
 func handleStorageContextErr(err error) (*logical.Response, error) {
 	switch err.(type) {
 	case errutil.UserError:
-		// NOTE: Doesn't worked as I expected??
-		// return logical.ErrorResponse(err.Error()), logical.ErrInvalidRequest
 		return logical.ErrorResponse(err.Error()), nil
 	case errutil.InternalError:
 		return nil, err

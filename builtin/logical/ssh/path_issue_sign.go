@@ -98,16 +98,17 @@ func (b *backend) pathSignIssueCertificateHelper(sc *storageContext, req *logica
 		return logical.ErrorResponse(err.Error()), nil
 	}
 
-	issuer, err := sc.fetchDefaultIssuer()
+	// TODO (gabrielopesantos): Review
+	issuerId, err := sc.resolveIssuerReference(role.Issuer)
 	if err != nil {
 		return handleStorageContextErr(err)
 	}
-	privateKey := issuer.PrivateKey
-
-	// NOTE: Is this check necessary?
-	if privateKey == "" {
-		return nil, errors.New("failed to read CA private key")
+	issuer, err := sc.fetchIssuerById(issuerId)
+	if err != nil {
+		return handleStorageContextErr(err)
 	}
+	//
+	privateKey := issuer.PrivateKey
 
 	signer, err := ssh.ParsePrivateKey([]byte(privateKey))
 	if err != nil {
