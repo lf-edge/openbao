@@ -62,9 +62,8 @@ func pathSubmitIssuer(b *backend) *framework.Path {
 
 		Fields: map[string]*framework.FieldSchema{
 			"issuer_name": {
-				Type:     framework.TypeString,
-				Required: false,
-				// TODO: Maybe unix timestamp instead?
+				Type:        framework.TypeString,
+				Required:    false,
 				Description: `Optional issuer name. If not provided, the name will be the same as the issuer reference.`,
 			},
 			"private_key": {
@@ -204,19 +203,12 @@ func (b *backend) pathReadIssuerHandler(ctx context.Context, req *logical.Reques
 	sc := b.makeStorageContext(ctx, req.Storage)
 	id, err := sc.resolveIssuerReference(issuerRef)
 	if err != nil {
-		// NOTE: Handle errs
-		return nil, err
+		return handleStorageContextErr(err)
 	}
 
 	entry, err := sc.fetchIssuerById(id)
 	if err != nil {
-		switch err.(type) {
-		case errutil.UserError:
-			return logical.ErrorResponse(err.Error()), nil
-		case errutil.InternalError:
-			return nil, err
-		default:
-		}
+		return handleStorageContextErr(err)
 	}
 
 	return respondReadIssuer(entry)
@@ -233,34 +225,30 @@ func (b *backend) pathUpdateIssuerHandler(ctx context.Context, req *logical.Requ
 	sc := b.makeStorageContext(ctx, req.Storage)
 	id, err := sc.resolveIssuerReference(issuerRef)
 	if err != nil {
-		return nil, err
+		return handleStorageContextErr(err)
 	}
 
 	issuer, err := sc.fetchIssuerById(id)
 	if err != nil {
-		return nil, err
+		return handleStorageContextErr(err)
 	}
 
 	newName, err := getIssuerName(sc, d)
-	if err != nil && err != errIssuerNameInUse {
+	if err != nil {
+		switch err {
 		// If the error is name already in use, and the new name is the
 		// old name for this issuer, we're not actually updating the
 		// issuer name (or causing a conflict) -- so don't err out. Other
-		// errs should still be surfaced, however.
-		switch err.(type) {
-		case errutil.UserError:
-			return logical.ErrorResponse(err.Error()), nil
+		// errs should still be surfaced.
+		case errIssuerNameInUse:
+			if issuer.Name != newName {
+				// When the new name is in use but isn't this name, throw an error.
+				return logical.ErrorResponse(err.Error()), nil
+			}
+			return respondReadIssuer(issuer)
 		default:
-			return nil, err
+			return handleStorageContextErr(err)
 		}
-	}
-	if err == errIssuerNameInUse && issuer.Name != newName {
-		// When the new name is in use but isn't this name, throw an error.
-		return logical.ErrorResponse(err.Error()), nil
-	}
-
-	if newName == issuer.Name {
-		return respondReadIssuer(issuer)
 	}
 
 	oldName := issuer.Name
@@ -268,7 +256,7 @@ func (b *backend) pathUpdateIssuerHandler(ctx context.Context, req *logical.Requ
 
 	err = sc.writeIssuer(issuer)
 	if err != nil {
-		return nil, err
+		return handleStorageContextErr(err)
 	}
 
 	response, _ := respondReadIssuer(issuer)
@@ -286,14 +274,13 @@ func (b *backend) pathDeleteIssuerHandler(ctx context.Context, req *logical.Requ
 	issuerRef := getIssuerRef(d)
 
 	sc := b.makeStorageContext(ctx, req.Storage)
-	// NOTE: this is addressed in `getIssuerName`
 	id, err := sc.resolveIssuerReference(issuerRef)
 	if err != nil {
 		// Return as if we deleted it if we fail to lookup the issuer.
 		if id == IssuerRefNotFound {
-			return &logical.Response{}, nil // TODO: Manually test this.
+			return &logical.Response{}, nil
 		}
-		return nil, err
+		return handleStorageContextErr(err)
 	}
 
 	response := &logical.Response{}
@@ -336,22 +323,20 @@ func (b *backend) pathWriteIssuerHandler(ctx context.Context, req *logical.Reque
 	// Create a new issuer entry
 	id, err := uuid.GenerateUUID()
 	if err != nil {
-		return nil, err // Internal error
+		return nil, fmt.Errorf("error generating issuer's unique identifier: %w", err)
 	}
-	issuerName := d.Get("issuer_name").(string)
-	if issuerName == "" {
-		issuerName = id
-	} else {
-		// Check if an issuer with the provided name has already been submitted
-		_, err := sc.resolveIssuerReference(issuerName)
-		if err == nil {
-			return logical.ErrorResponse(fmt.Sprintf("an issuer with the provided name '%s' has already been submitted", issuerName)), nil
+	name, err := getIssuerName(sc, d)
+	if err != nil && err != errIssuerNameIsEmpty {
+		switch err.(type) {
+		case errutil.UserError:
+			return logical.ErrorResponse(err.Error()), nil
+		default:
+			return nil, err
 		}
 	}
-
 	issuer := &issuerEntry{
 		ID:         issuerID(id),
-		Name:       issuerName,
+		Name:       name,
 		PublicKey:  publicKey,
 		PrivateKey: privateKey,
 		Version:    1,
@@ -368,16 +353,16 @@ func (b *backend) pathWriteIssuerHandler(ctx context.Context, req *logical.Reque
 
 	setDefault := d.Get("set_default").(bool)
 	if setDefault {
-		// Update issuers config to set new issuers as the 'default'
+		// Update issuers config to set new issuer as the 'default'
 		err = sc.setIssuersConfig(&issuerConfigEntry{DefaultIssuerID: issuerID(id)})
 		if err != nil {
 			// Even if the new issuer fails to be set as default, we want to return
-			// the newly submitted issuers with an warning;
-			response.AddWarning(fmt.Sprintf("Unable to fetch default issuers configuration to update default issuer if necessary: %s", err.Error()))
+			// the newly submitted issuer with a warning
+			response.AddWarning(fmt.Sprintf("Unable to update the default issuers configuration: %s", err.Error()))
 		}
 	}
 
-	// NOTE: Differing from the original implementation, we return the issuer's data always.
+	// Weather an key material is generated or submitted, we return the issuer's data always.
 	return response, nil
 }
 

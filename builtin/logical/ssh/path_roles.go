@@ -801,11 +801,17 @@ func (b *backend) pathRoleList(ctx context.Context, req *logical.Request, data *
 			continue
 		}
 
+		entryInfo := map[string]interface{}{}
 		if keyType, ok := roleInfo["key_type"]; ok {
-			keyInfo[entry] = map[string]interface{}{
-				"key_type": keyType,
-				// NOTE: Also default `issuer_ref`?
-			}
+			entryInfo["key_type"] = keyType
+		}
+
+		if issuerRef, ok := roleInfo["issuer_ref"]; ok {
+			entryInfo["issuer_ref"] = issuerRef
+		}
+
+		if len(entryInfo) != 0 {
+			keyInfo[entry] = entryInfo
 		}
 	}
 

@@ -224,8 +224,8 @@ func (b *backend) pathConfigCAUpdate(ctx context.Context, req *logical.Request, 
 	err = sc.setIssuersConfig(&issuerConfigEntry{DefaultIssuerID: issuerID(id)})
 	if err != nil {
 		// Even if the new issuer fails to be set as default, we want to return
-		// the newly submitted issuers with an warning;
-		response.AddWarning(fmt.Sprintf("Unable to fetch default issuers configuration to update default issuer if necessary: %s", err.Error()))
+		// the newly submitted issuer with a warning
+		response.AddWarning(fmt.Sprintf("Unable to update default issuers configuration: %s", err.Error()))
 	}
 
 	return response, nil

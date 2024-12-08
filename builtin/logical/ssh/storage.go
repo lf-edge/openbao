@@ -168,11 +168,9 @@ func (sc *storageContext) fetchIssuerById(issuerId issuerID) (*issuerEntry, erro
 
 	var issuer issuerEntry
 	if err := entry.DecodeJSON(&issuer); err != nil {
-		return nil, errutil.InternalError{Err: fmt.Sprintf("unable to decode pki issuer with id %s: %v", issuerId.String(), err)}
+		return nil, errutil.InternalError{Err: fmt.Sprintf("unable to decode ssh issuer with id %s: %v", issuerId.String(), err)}
 	}
 
-	// TODO (gabriel): ??
-	// return sc.upgradeIssuerIfRequired(&issuer), nil
 	return &issuer, nil
 }
 
@@ -187,7 +185,7 @@ func (sc *storageContext) resolveIssuerReference(ref string) (issuerID, error) {
 			return "", err
 		}
 		if len(issuerConfig.DefaultIssuerID) == 0 {
-			return IssuerRefNotFound, fmt.Errorf("no default issuer currently configured")
+			return IssuerRefNotFound, errutil.UserError{Err: "no default issuer configured"}
 		}
 
 		return issuerConfig.DefaultIssuerID, nil
