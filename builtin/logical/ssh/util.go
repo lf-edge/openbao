@@ -216,7 +216,15 @@ func (b *backend) keys(data *framework.FieldData) (string, string, error) {
 }
 
 func getIssuerRef(data *framework.FieldData) string {
-	value := strings.TrimSpace(data.Get(issuerRefParam).(string))
+	return extractRef(data, issuerRefParam)
+}
+
+func getDefaultRef(data *framework.FieldData) string {
+	return extractRef(data, defaultRef)
+}
+
+func extractRef(data *framework.FieldData, paramName string) string {
+	value := strings.TrimSpace(data.Get(paramName).(string))
 	if strings.EqualFold(value, defaultRef) {
 		return defaultRef
 	}

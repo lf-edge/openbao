@@ -19,6 +19,7 @@ import (
 
 	"github.com/hashicorp/go-uuid"
 	"github.com/openbao/openbao/sdk/v2/framework"
+	"github.com/openbao/openbao/sdk/v2/helper/errutil"
 	"github.com/openbao/openbao/sdk/v2/logical"
 	"golang.org/x/crypto/ssh"
 
@@ -98,40 +99,54 @@ Read operations will return the public key, if already stored/generated.`,
 func (b *backend) pathConfigCARead(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 	sc := b.makeStorageContext(ctx, req.Storage)
 
-	// NOTE: Transaction
-	config, err := sc.getIssuersConfig()
+	issuer, err := sc.fetchDefaultIssuer()
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch the issuer's config: %w", err)
-	}
-
-	if config.DefaultIssuerID == "" {
-		return logical.ErrorResponse("A 'default' issuer hasn't been configured yet"), nil
-	}
-
-	issuer, err := sc.fetchIssuerById(config.DefaultIssuerID)
-	if err != nil {
-		return nil, err
+		handleStorageContextErr(err)
 	}
 
 	return respondReadIssuer(issuer)
 }
 
+// NOTE (gabrielopesantos): What behavior do we want here?
 func (b *backend) pathConfigCADelete(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 	// Since we're planning on updating issuers here, grab the lock so we've
 	// got a consistent view.
 	b.issuersLock.Lock()
 	defer b.issuersLock.Unlock()
 
+	// Use the transaction storage if there's one.
+	if txnStorage, ok := req.Storage.(logical.TransactionalStorage); ok {
+		txn, err := txnStorage.BeginTx(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		defer txn.Rollback(ctx)
+		req.Storage = txn
+	}
+
 	sc := b.makeStorageContext(ctx, req.Storage)
 
-	err := sc.purgeIssuers()
+	issuersDeleted, err := sc.purgeIssuers()
 	if err != nil {
 		return nil, fmt.Errorf("failed to delete issuers: %w", err)
 	}
 
-	// NOTE: Add a warning mentioning the change in behaviour or is updating the docs enough?
+	// Commit our transaction if we created one!
+	if txn, ok := req.Storage.(logical.Transaction); ok {
+		if err := txn.Commit(ctx); err != nil {
+			return nil, err
+		}
+	}
 
-	return nil, nil
+	// With this, the response isn't empty
+	response := &logical.Response{}
+
+	if issuersDeleted > 0 {
+		response.AddWarning(fmt.Sprintf("Deleted %d issuers, including the 'default'.", issuersDeleted))
+	}
+
+	return response, nil
 }
 
 func caKey(ctx context.Context, storage logical.Storage, keyType string) (*keyStorageEntry, error) {
@@ -192,12 +207,27 @@ func (b *backend) pathConfigCAUpdate(ctx context.Context, req *logical.Request, 
 	b.issuersLock.Lock()
 	defer b.issuersLock.Unlock()
 
+	// Use the transaction storage if there's one.
+	if txnStorage, ok := req.Storage.(logical.TransactionalStorage); ok {
+		txn, err := txnStorage.BeginTx(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		defer txn.Rollback(ctx)
+		req.Storage = txn
+	}
+
 	sc := b.makeStorageContext(ctx, req.Storage)
 
 	publicKey, privateKey, err := b.keys(data)
 	if err != nil {
-		// NOTE: Properly handle error
-		return nil, err
+		switch err.(type) {
+		case errutil.InternalError:
+			return nil, err
+		default:
+			return logical.ErrorResponse(err.Error()), nil
+		}
 	}
 
 	id, err := uuid.GenerateUUID()
@@ -212,7 +242,6 @@ func (b *backend) pathConfigCAUpdate(ctx context.Context, req *logical.Request, 
 		Version:    1,
 	}
 
-	// NOTE: Transaction here
 	err = sc.writeIssuer(issuer)
 	if err != nil {
 		return nil, fmt.Errorf("failed to persist the issuer: %w", err)
@@ -223,9 +252,20 @@ func (b *backend) pathConfigCAUpdate(ctx context.Context, req *logical.Request, 
 	// Update issuers config to set new issuers as the 'default'
 	err = sc.setIssuersConfig(&issuerConfigEntry{DefaultIssuerID: issuerID(id)})
 	if err != nil {
-		// Even if the new issuer fails to be set as default, we want to return
-		// the newly submitted issuer with a warning
-		response.AddWarning(fmt.Sprintf("Unable to update default issuers configuration: %s", err.Error()))
+		// It is not possible to have this error in the transaction, so check
+		// storage type and skip if is a transaction
+		if _, ok := req.Storage.(logical.Transaction); !ok {
+			// Even if the new issuer fails to be set as default, we want to return
+			// the newly submitted issuer with a warning
+			response.AddWarning(fmt.Sprintf("Unable to update default issuers configuration: %s", err.Error()))
+		}
+	}
+
+	// Commit our transaction if we created one!
+	if txn, ok := req.Storage.(logical.Transaction); ok {
+		if err := txn.Commit(ctx); err != nil {
+			return nil, err
+		}
 	}
 
 	return response, nil

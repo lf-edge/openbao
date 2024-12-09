@@ -308,6 +308,11 @@ func (b *backend) pathDeleteIssuerHandler(ctx context.Context, req *logical.Requ
 }
 
 func (b *backend) pathWriteIssuerHandler(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+	// Since we're planning on updating issuers here, grab the lock so we've
+	// got a consistent view.
+	b.issuersLock.Lock()
+	defer b.issuersLock.Unlock()
+
 	publicKey, privateKey, err := b.keys(d)
 	if err != nil {
 		switch err.(type) {
@@ -316,6 +321,17 @@ func (b *backend) pathWriteIssuerHandler(ctx context.Context, req *logical.Reque
 		default:
 			return logical.ErrorResponse(err.Error()), nil
 		}
+	}
+
+	// Use the transaction storage if there's one.
+	if txnStorage, ok := req.Storage.(logical.TransactionalStorage); ok {
+		txn, err := txnStorage.BeginTx(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		defer txn.Rollback(ctx)
+		req.Storage = txn
 	}
 
 	sc := b.makeStorageContext(ctx, req.Storage)
@@ -342,7 +358,6 @@ func (b *backend) pathWriteIssuerHandler(ctx context.Context, req *logical.Reque
 		Version:    1,
 	}
 
-	// NOTE: Transaction (Same as what we have in `path_config_ca`)
 	err = sc.writeIssuer(issuer)
 	if err != nil {
 		return nil, fmt.Errorf("failed to persist the issuer: %w", err)
@@ -356,13 +371,24 @@ func (b *backend) pathWriteIssuerHandler(ctx context.Context, req *logical.Reque
 		// Update issuers config to set new issuer as the 'default'
 		err = sc.setIssuersConfig(&issuerConfigEntry{DefaultIssuerID: issuerID(id)})
 		if err != nil {
-			// Even if the new issuer fails to be set as default, we want to return
-			// the newly submitted issuer with a warning
-			response.AddWarning(fmt.Sprintf("Unable to update the default issuers configuration: %s", err.Error()))
+			// It is not possible to have this error in the transaction, so check
+			// storage type and skip if is a transaction
+			if _, ok := req.Storage.(logical.Transaction); !ok {
+				// Even if the new issuer fails to be set as default, we want to return
+				// the newly submitted issuer with a warning
+				response.AddWarning(fmt.Sprintf("Unable to update the default issuers configuration: %s", err.Error()))
+			}
 		}
 	}
 
-	// Weather an key material is generated or submitted, we return the issuer's data always.
+	// Commit our transaction if we created one!
+	if txn, ok := req.Storage.(logical.Transaction); ok {
+		if err := txn.Commit(ctx); err != nil {
+			return nil, err
+		}
+	}
+
+	// Whether an key material is generated or submitted, we return the issuer's data always.
 	return response, nil
 }
 

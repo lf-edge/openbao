@@ -24,7 +24,7 @@ const (
 	caPrivateKeyStoragePath           = "config/ca_private_key"
 	caPrivateKeyStoragePathDeprecated = "config/ca_bundle"
 
-	// NOTE: These might be to high for SSH issuers
+	// NOTE (gabrielopesantos): These might be to high for SSH issuers
 	maxRolesToScanOnIssuerChange = 100
 	maxRolesToFindOnIssuerChange = 10
 
@@ -88,9 +88,6 @@ func (sc *storageContext) deleteIssuer(id issuerID) (bool, error) {
 	wasDefault := false
 	if config.DefaultIssuerID == id {
 		wasDefault = true
-		// Overwrite the fetched default issuer as we're going to remove this
-		// entry.
-		// config.fetchedDefault = issuerID("")
 		config.DefaultIssuerID = issuerID("")
 		if err := sc.setIssuersConfig(config); err != nil {
 			return wasDefault, err
@@ -110,10 +107,6 @@ func (sc *storageContext) setIssuersConfig(config *issuerConfigEntry) error {
 		return err
 	}
 
-	// if err := sc.changeDefaultIssuerTimestamps(config.fetchedDefault, config.DefaultIssuerId); err != nil {
-	// 	return err
-	// }
-
 	return nil
 }
 
@@ -129,7 +122,6 @@ func (sc *storageContext) getIssuersConfig() (*issuerConfigEntry, error) {
 			return nil, errutil.InternalError{Err: fmt.Sprintf("unable to decode issuer configuration: %v", err)}
 		}
 	}
-	// issuerConfig.fetchedDefault = issuerConfig.DefaultIssuerId
 
 	return issuerConfig, nil
 }
@@ -244,21 +236,21 @@ func (sc *storageContext) fetchDefaultIssuer() (*issuerEntry, error) {
 }
 
 // purgeIssuers deletes all pre-submitted issuers
-// NOTE: Transactions would be useful here. For now, we will try
-// to remove each issuer and return an error if one fails.
-func (sc *storageContext) purgeIssuers() error {
+func (sc *storageContext) purgeIssuers() (int, error) {
+	var deleted int
 	issuers, err := sc.listIssuers()
 	if err != nil {
-		return err
+		return deleted, err
 	}
 
 	for _, id := range issuers {
 		if _, err := sc.deleteIssuer(id); err != nil {
-			return err
+			return deleted, err
 		}
+		deleted += 1
 	}
 
-	return nil
+	return deleted, nil
 }
 
 // checkForRolesReferencingIssuer checks if any roles are referencing the given issuer. The reference can either be the issuer's ID or name.
@@ -276,7 +268,7 @@ func (sc *storageContext) checkForRolesReferencingIssuer(issuerName string) (tim
 		if err != nil {
 			return false, inUseBy, err
 		}
-		// NOTE (gabrielopesantos): Not sure;
+
 		if entry != nil { // If nil, someone deleted an entry since we haven't taken a lock here so just continue
 			var role sshRole
 			err = entry.DecodeJSON(&role)

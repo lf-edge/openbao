@@ -810,7 +810,7 @@ func (b *backend) pathRoleList(ctx context.Context, req *logical.Request, data *
 			entryInfo["issuer_ref"] = issuerRef
 		}
 
-		if len(entryInfo) != 0 {
+		if entryInfo != nil {
 			keyInfo[entry] = entryInfo
 		}
 	}
