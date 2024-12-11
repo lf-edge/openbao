@@ -220,6 +220,10 @@ func pathImportIssuer(b *backend) *framework.Path {
 				Description: `PEM-format, concatenated unencrypted
 secret-key (optional) and certificates.`,
 			},
+			"issuer_name": {
+				Type:        framework.TypeString,
+				Description: "Optional friendly name to assign to the imported issuer.",
+			},
 		},
 
 		Operations: map[logical.Operation]framework.OperationHandler{
@@ -296,13 +300,19 @@ func (b *backend) pathImportIssuers(ctx context.Context, req *logical.Request, d
 
 	var pemBundle string
 	var certificate string
+	var issuerName string
 	rawPemBundle, bundleOk := data.GetOk("pem_bundle")
 	rawCertificate, certOk := data.GetOk("certificate")
+	rawIssuerName, nameOk := data.GetOk("issuer_name")
+
 	if bundleOk {
 		pemBundle = rawPemBundle.(string)
 	}
 	if certOk {
 		certificate = rawCertificate.(string)
+	}
+	if nameOk {
+		issuerName = rawIssuerName.(string) // Type assertion to convert interface{} to string
 	}
 
 	if len(pemBundle) == 0 && len(certificate) == 0 {
@@ -332,9 +342,9 @@ func (b *backend) pathImportIssuers(ctx context.Context, req *logical.Request, d
 	}
 
 	var createdKeys []string
-	var createdIssuers []string
+	createdIssuers := make(map[string]string)
 	var existingKeys []string
-	var existingIssuers []string
+	existingIssuers := make(map[string]string)
 	issuerKeyMap := make(map[string]string)
 
 	// Rather than using certutil.ParsePEMBundle (which restricts the
@@ -401,16 +411,21 @@ func (b *backend) pathImportIssuers(ctx context.Context, req *logical.Request, d
 	}
 
 	for certIndex, certPem := range issuers {
-		cert, existing, err := sc.importIssuer(certPem, "")
+		cert, existing, err := sc.importIssuer(certPem, issuerName)
 		if err != nil {
 			return logical.ErrorResponse(fmt.Sprintf("Error parsing issuer %v: %v\n%v", certIndex, err, certPem)), nil
 		}
 
 		issuerKeyMap[cert.ID.String()] = cert.KeyID.String()
+		name := cert.Name
+		if name == "" {
+			name = ""
+		}
+
 		if !existing {
-			createdIssuers = append(createdIssuers, cert.ID.String())
+			createdIssuers[cert.ID.String()] = name
 		} else {
-			existingIssuers = append(existingIssuers, cert.ID.String())
+			existingIssuers[cert.ID.String()] = name
 		}
 	}
 
