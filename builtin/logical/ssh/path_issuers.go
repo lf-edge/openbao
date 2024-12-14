@@ -82,8 +82,8 @@ func pathIssuers(b *backend) *framework.Path {
 				},
 			},
 		},
-		HelpSynopsis:    "",
-		HelpDescription: "",
+		HelpSynopsis:    pathIssuersSyn,
+		HelpDescription: pathIssuersDesc,
 	}
 }
 
@@ -193,8 +193,8 @@ func pathListIssuers(b *backend) *framework.Path {
 			},
 		},
 
-		HelpSynopsis:    "",
-		HelpDescription: "",
+		HelpSynopsis:    pathListIssuersSyn,
+		HelpDescription: pathListIssuersDesc,
 	}
 }
 
@@ -245,8 +245,8 @@ func pathGetIssuerUnauthenticated(b *backend) *framework.Path {
 			},
 		},
 
-		HelpSynopsis:    "",
-		HelpDescription: "",
+		HelpSynopsis:    pathIssuersSyn,
+		HelpDescription: pathGetIssuerUnauthenticatedDesc,
 	}
 }
 
@@ -502,7 +502,7 @@ func addWarningOnDereferencing(sc *storageContext, name string, resp *logical.Re
 		if inUseBy == 0 {
 			resp.AddWarning(fmt.Sprintf("Unable to check if any roles referenced this issuer by '%s'", name))
 		} else {
-			resp.AddWarning(fmt.Sprint("The name '%s' was in use by at least %d roles", name, inUseBy))
+			resp.AddWarning(fmt.Sprintf("The name '%s' was in use by at least %d roles", name, inUseBy))
 		}
 	} else {
 		if inUseBy > 0 {
@@ -510,3 +510,29 @@ func addWarningOnDereferencing(sc *storageContext, name string, resp *logical.Re
 		}
 	}
 }
+
+const (
+	pathListIssuersSyn  = `Fetch a list of all issuers.`
+	pathListIssuersDesc = `
+This endpoints allows listing of all the issuers that have been generated
+or submited, returning their identifier, name (if set) and public key.
+`
+	pathIssuersSyn  = `Fetch a single issuer.`
+	pathIssuersDesc = `
+This allows fetching information associated with the issuer
+reference provided.
+
+:issuer_ref can be either the literal value "default", in which case /config/issuers
+will be consulted for the present default issuer, an identifier of an issuer,
+or its assigned name value.
+
+Writing to /issuer/:issuer_ref allows updating of the name field associated with
+the certificate. Updates of an issuer's name can break existing roles that references.
+
+Delete operations will remove the issuer from the backend and, if configured as default,
+dereference it as the default issuer.
+`
+	pathGetIssuerUnauthenticatedDesc = `
+This endpoint allows fetching the public key of an issuer without authentication.
+`
+)

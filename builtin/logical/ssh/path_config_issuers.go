@@ -9,6 +9,18 @@ import (
 )
 
 func pathConfigIssuers(b *backend) *framework.Path {
+	configIssuerSchema := map[int][]framework.Response{
+		http.StatusOK: {{
+			Description: "OK",
+			Fields: map[string]*framework.FieldSchema{
+				"default": {
+					Type:        framework.TypeString,
+					Description: `Reference (name or identifier) to the default issuer.`,
+					Required:    true,
+				},
+			},
+		}},
+	}
 	return &framework.Path{
 		Pattern: "config/issuers",
 
@@ -29,40 +41,19 @@ func pathConfigIssuers(b *backend) *framework.Path {
 				DisplayAttrs: &framework.DisplayAttributes{
 					OperationSuffix: "read",
 				},
-				Responses: map[int][]framework.Response{
-					http.StatusOK: {{
-						Description: "OK",
-						Fields: map[string]*framework.FieldSchema{
-							"default": {
-								Type:        framework.TypeString,
-								Description: `Reference (name or identifier) to the default issuer.`,
-								Required:    true,
-							},
-						},
-					}},
-				},
+				Responses: configIssuerSchema,
 			},
 			logical.UpdateOperation: &framework.PathOperation{
 				Callback: b.pathWriteDefaultIssuerHandler,
 				DisplayAttrs: &framework.DisplayAttributes{
 					OperationVerb: "write",
 				},
-				Responses: map[int][]framework.Response{
-					http.StatusOK: {{
-						Description: "OK",
-						Fields: map[string]*framework.FieldSchema{
-							"default": {
-								Type:        framework.TypeString,
-								Description: `Reference (name or identifier) to the default issuer.`,
-							},
-						},
-					}},
-				},
+				Responses: configIssuerSchema,
 			},
 		},
 
-		HelpSynopsis:    "",
-		HelpDescription: "",
+		HelpSynopsis:    pathConfigIssuersSyn,
+		HelpDescription: pathConfigIssuersDesc,
 	}
 }
 
@@ -137,3 +128,12 @@ func (b *backend) pathWriteDefaultIssuerHandler(ctx context.Context, req *logica
 		},
 	}, nil
 }
+
+const (
+	pathConfigIssuersSyn  = `Configure or read the default SSH certificate issuer.`
+	pathConfigIssuersDesc = `
+This endpoint allows configuring or reading the default issuer for SSH certificates.
+
+The body parameter 'default' is the reference (name or identifier) to the default issuer.
+`
+)
