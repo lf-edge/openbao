@@ -5,6 +5,7 @@ package ssh
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 
@@ -56,6 +57,8 @@ func Backend(conf *logical.BackendConfig) (*backend, error) {
 				caPrivateKey,
 				caPrivateKeyStoragePath,
 				keysStoragePrefix,
+				fmt.Sprintf("%s+", issuerPrefix),
+				storageIssuerConfig,
 			},
 		},
 

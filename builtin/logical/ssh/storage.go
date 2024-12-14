@@ -60,6 +60,7 @@ type storageContext struct {
 	Backend *backend
 }
 
+// makeStorageContext creates a storage context with the given context and storage
 func (b *backend) makeStorageContext(ctx context.Context, s logical.Storage) *storageContext {
 	return &storageContext{
 		Context: ctx,
@@ -68,6 +69,7 @@ func (b *backend) makeStorageContext(ctx context.Context, s logical.Storage) *st
 	}
 }
 
+// writeIssuer writes an issuerEntry to storage
 func (sc *storageContext) writeIssuer(issuer *issuerEntry) error {
 	issuerId := issuer.ID
 
@@ -79,6 +81,8 @@ func (sc *storageContext) writeIssuer(issuer *issuerEntry) error {
 	return sc.Storage.Put(sc.Context, json)
 }
 
+// deleteIssuer removes an issuer from storage and unsets from default, if was.
+// Returns a boolean indicating if the issuer was the default issuer
 func (sc *storageContext) deleteIssuer(id issuerID) (bool, error) {
 	config, err := sc.getIssuersConfig()
 	if err != nil {
@@ -97,6 +101,7 @@ func (sc *storageContext) deleteIssuer(id issuerID) (bool, error) {
 	return wasDefault, sc.Storage.Delete(sc.Context, issuerPrefix+id.String())
 }
 
+// setIssuersConfig writes the issuers configuration to storage
 func (sc *storageContext) setIssuersConfig(config *issuerConfigEntry) error {
 	json, err := logical.StorageEntryJSON(storageIssuerConfig, config)
 	if err != nil {
@@ -110,6 +115,7 @@ func (sc *storageContext) setIssuersConfig(config *issuerConfigEntry) error {
 	return nil
 }
 
+// getIssuersConfig fetches the issuers configuration from storage
 func (sc *storageContext) getIssuersConfig() (*issuerConfigEntry, error) {
 	entry, err := sc.Storage.Get(sc.Context, storageIssuerConfig)
 	if err != nil {
@@ -126,10 +132,12 @@ func (sc *storageContext) getIssuersConfig() (*issuerConfigEntry, error) {
 	return issuerConfig, nil
 }
 
+// listIssuers returns a list of all issuer identifiers
 func (sc *storageContext) listIssuers() ([]issuerID, error) {
 	return sc.listIssuersPage("", -1)
 }
 
+// listIssuersPage returns a list of issuer identifiers starting after the given identifier
 func (sc *storageContext) listIssuersPage(after string, limit int) ([]issuerID, error) {
 	strList, err := sc.Storage.ListPage(sc.Context, issuerPrefix, after, limit)
 	if err != nil {
@@ -144,7 +152,7 @@ func (sc *storageContext) listIssuersPage(after string, limit int) ([]issuerID, 
 	return issuerIds, nil
 }
 
-// fetchIssuerById returns an issuerEntry based on issuerId, if none found an error is returned.
+// fetchIssuerById returns an issuer entry based on issuerId, if none found an error is returned.
 func (sc *storageContext) fetchIssuerById(issuerId issuerID) (*issuerEntry, error) {
 	if len(issuerId) == 0 {
 		return nil, errutil.InternalError{Err: "unable to fetch ssh issuer: empty issuer identifier"}
@@ -235,15 +243,16 @@ func (sc *storageContext) fetchDefaultIssuer() (*issuerEntry, error) {
 	return issuer, nil
 }
 
-// purgeIssuers deletes all pre-submitted issuers
+// purgeIssuers fetches all issuers identifiers and deletes them from storage.
+// Returns the number of issuers deleted and an error if any.
 func (sc *storageContext) purgeIssuers() (int, error) {
 	var deleted int
-	issuers, err := sc.listIssuers()
+	issuersIds, err := sc.listIssuers()
 	if err != nil {
 		return deleted, err
 	}
 
-	for _, id := range issuers {
+	for _, id := range issuersIds {
 		if _, err := sc.deleteIssuer(id); err != nil {
 			return deleted, err
 		}

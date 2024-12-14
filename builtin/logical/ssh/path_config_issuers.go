@@ -14,6 +14,7 @@ func pathConfigIssuers(b *backend) *framework.Path {
 
 		DisplayAttrs: &framework.DisplayAttributes{
 			OperationPrefix: operationPrefixSSH,
+			OperationSuffix: "issuer-config",
 		},
 
 		Fields: map[string]*framework.FieldSchema{
@@ -26,7 +27,7 @@ func pathConfigIssuers(b *backend) *framework.Path {
 			logical.ReadOperation: &framework.PathOperation{
 				Callback: b.pathReadDefaultIssuerHandler,
 				DisplayAttrs: &framework.DisplayAttributes{
-					OperationSuffix: "issuers-configuration",
+					OperationSuffix: "read",
 				},
 				Responses: map[int][]framework.Response{
 					http.StatusOK: {{
@@ -44,8 +45,7 @@ func pathConfigIssuers(b *backend) *framework.Path {
 			logical.UpdateOperation: &framework.PathOperation{
 				Callback: b.pathWriteDefaultIssuerHandler,
 				DisplayAttrs: &framework.DisplayAttributes{
-					OperationVerb:   "configure",
-					OperationSuffix: "issuers",
+					OperationVerb: "write",
 				},
 				Responses: map[int][]framework.Response{
 					http.StatusOK: {{

@@ -12,10 +12,37 @@ import (
 )
 
 func pathIssuers(b *backend) *framework.Path {
+	updateIssuerSchema := map[int][]framework.Response{
+		http.StatusOK: {{
+			Description: "OK",
+			Fields: map[string]*framework.FieldSchema{
+				"issuer_id": {
+					Type:        framework.TypeString,
+					Description: `Issuer Id`,
+					Required:    false,
+				},
+				"issuer_name": {
+					Type:        framework.TypeString,
+					Description: `Issuer Name`,
+					Required:    false,
+				},
+				"public_key": {
+					Type:        framework.TypeBool,
+					Description: `Issuer public key`,
+					Required:    false,
+				},
+			},
+		}},
+	}
+
 	return &framework.Path{
 		Pattern: "issuer/" + framework.GenericNameRegex("issuer_ref"),
-		// TODO: Display attrs
-		DisplayAttrs: &framework.DisplayAttributes{},
+
+		DisplayAttrs: &framework.DisplayAttributes{
+			OperationPrefix: operationPrefixSSH,
+			OperationSuffix: "issuer",
+		},
+
 		Fields: map[string]*framework.FieldSchema{
 			"issuer_ref": {
 				Type:        framework.TypeString,
@@ -27,23 +54,31 @@ func pathIssuers(b *backend) *framework.Path {
 				Description: `Issuer name.`,
 			},
 		},
+
 		Operations: map[logical.Operation]framework.OperationHandler{
 			logical.ReadOperation: &framework.PathOperation{
 				Callback: b.pathReadIssuerHandler,
 				DisplayAttrs: &framework.DisplayAttributes{
 					OperationVerb: "read",
 				},
+				Responses: updateIssuerSchema,
 			},
 			logical.UpdateOperation: &framework.PathOperation{
 				Callback: b.pathUpdateIssuerHandler,
 				DisplayAttrs: &framework.DisplayAttributes{
 					OperationVerb: "update",
 				},
+				Responses: updateIssuerSchema,
 			},
 			logical.DeleteOperation: &framework.PathOperation{
 				Callback: b.pathDeleteIssuerHandler,
 				DisplayAttrs: &framework.DisplayAttributes{
 					OperationVerb: "delete",
+				},
+				Responses: map[int][]framework.Response{
+					http.StatusNoContent: {{
+						Description: "No Content",
+					}},
 				},
 			},
 		},
@@ -53,48 +88,25 @@ func pathIssuers(b *backend) *framework.Path {
 }
 
 func pathSubmitIssuer(b *backend) *framework.Path {
+	fields := map[string]*framework.FieldSchema{}
+	fields = addSubmitIssuerCommonFields(fields)
+
+	fields["set_default"] = &framework.FieldSchema{
+		Type:        framework.TypeBool,
+		Description: `If true, this issuer will be set as the default issuer for performing operations. Only one issuer can be the default issuer and, if there's one set, it will be overrided.`,
+		Default:     false,
+	}
+
 	return &framework.Path{
 		Pattern: "issuers/import" + framework.OptionalGenericNameRegex("issuer_name"),
 
 		DisplayAttrs: &framework.DisplayAttributes{
 			OperationPrefix: operationPrefixSSH,
+			OperationVerb:   "submit",
+			OperationSuffix: "issuer",
 		},
 
-		Fields: map[string]*framework.FieldSchema{
-			"issuer_name": {
-				Type:        framework.TypeString,
-				Required:    false,
-				Description: `Optional issuer name. If not provided, the name will be the same as the issuer reference.`,
-			},
-			"private_key": {
-				Type:        framework.TypeString,
-				Description: `Private half of the SSH key that will be used to sign certificates.`,
-			},
-			"public_key": {
-				Type:        framework.TypeString,
-				Description: `Public half of the SSH key that will be used to sign certificates.`,
-			},
-			"generate_signing_key": {
-				Type:        framework.TypeBool,
-				Description: `Generate SSH key pair internally rather than use the private_key and public_key fields.`,
-				Default:     true,
-			},
-			"key_type": {
-				Type:        framework.TypeString,
-				Description: `Specifies the desired key type when generating; could be a OpenSSH key type identifier (ssh-rsa, ecdsa-sha2-nistp256, ecdsa-sha2-nistp384, ecdsa-sha2-nistp521, or ssh-ed25519) or an algorithm (rsa, ec, ed25519).`,
-				Default:     "ssh-rsa",
-			},
-			"key_bits": {
-				Type:        framework.TypeInt,
-				Description: `Specifies the desired key bits when generating variable-length keys (such as when key_type="ssh-rsa") or which NIST P-curve to use when key_type="ec" (256, 384, or 521).`,
-				Default:     0,
-			},
-			"set_default": {
-				Type:        framework.TypeBool,
-				Description: `If true, this issuer will be set as the default issuer for performing operations. Only one issuer can be the default issuer and, if there's one set, it will be overrided.`,
-				Default:     false,
-			},
-		},
+		Fields: fields,
 
 		Operations: map[logical.Operation]framework.OperationHandler{
 			logical.UpdateOperation: &framework.PathOperation{
@@ -102,6 +114,30 @@ func pathSubmitIssuer(b *backend) *framework.Path {
 				DisplayAttrs: &framework.DisplayAttributes{
 					OperationVerb:   "submit",
 					OperationSuffix: "issuer",
+				},
+				Responses: map[int][]framework.Response{
+					http.StatusOK: {
+						{
+							Description: "OK",
+							Fields: map[string]*framework.FieldSchema{
+								"issuer_id": {
+									Type:        framework.TypeString,
+									Description: "Issuer Id",
+									Required:    false,
+								},
+								"issuer_name": {
+									Type:        framework.TypeString,
+									Description: "Issuer name",
+									Required:    false,
+								},
+								"public_key": {
+									Type:        framework.TypeString,
+									Description: "Issuer public key",
+									Required:    false,
+								},
+							},
+						},
+					},
 				},
 			},
 		},
@@ -117,6 +153,7 @@ func pathListIssuers(b *backend) *framework.Path {
 
 		DisplayAttrs: &framework.DisplayAttributes{
 			OperationPrefix: operationPrefixSSH,
+			OperationVerb:   "list",
 			OperationSuffix: "issuers",
 		},
 
@@ -167,7 +204,8 @@ func pathGetIssuerUnauthenticated(b *backend) *framework.Path {
 
 		DisplayAttrs: &framework.DisplayAttributes{
 			OperationPrefix: operationPrefixSSH,
-			// OperationSuffix: "issuers",
+			OperationVerb:   "get",
+			OperationSuffix: "issuer",
 		},
 
 		Fields: map[string]*framework.FieldSchema{
@@ -184,8 +222,23 @@ func pathGetIssuerUnauthenticated(b *backend) *framework.Path {
 					http.StatusOK: {
 						{
 							Description: "OK",
-							// TODO: Add
-							Fields: map[string]*framework.FieldSchema{},
+							Fields: map[string]*framework.FieldSchema{
+								"issuer_id": {
+									Type:        framework.TypeString,
+									Description: "Issuer Id",
+									Required:    false,
+								},
+								"issuer_name": {
+									Type:        framework.TypeString,
+									Description: "Issuer name",
+									Required:    false,
+								},
+								"public_key": {
+									Type:        framework.TypeString,
+									Description: "Issuer public key",
+									Required:    false,
+								},
+							},
 						},
 					},
 				},
@@ -363,7 +416,6 @@ func (b *backend) pathWriteIssuerHandler(ctx context.Context, req *logical.Reque
 		return nil, fmt.Errorf("failed to persist the issuer: %w", err)
 	}
 
-	// NOTE: Return `is_default`?
 	response, err := respondReadIssuer(issuer)
 
 	setDefault := d.Get("set_default").(bool)
