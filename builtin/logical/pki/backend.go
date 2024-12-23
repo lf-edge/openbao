@@ -125,6 +125,8 @@ func Backend(conf *logical.BackendConfig) *backend {
 		Paths: []*framework.Path{
 			pathListRoles(&b),
 			pathRoles(&b),
+			pathListCelRoles(&b),
+			pathCelRoles(&b),
 			pathGenerateRoot(&b),
 			pathSignIntermediate(&b),
 			pathSignSelfIssued(&b),
