@@ -228,7 +228,7 @@ func (sc *storageContext) resolveIssuerReference(ref string) (issuerID, error) {
 func (sc *storageContext) fetchDefaultIssuer() (*issuerEntry, error) {
 	config, err := sc.getIssuersConfig()
 	if err != nil {
-		return nil, errutil.InternalError{Err: fmt.Sprintf("unable to fetch the issuer's config: %w", err)}
+		return nil, errutil.InternalError{Err: fmt.Sprintf("unable to fetch the issuer's config: %s", err)}
 	}
 
 	if config.DefaultIssuerID == "" {
@@ -237,7 +237,7 @@ func (sc *storageContext) fetchDefaultIssuer() (*issuerEntry, error) {
 
 	issuer, err := sc.fetchIssuerById(config.DefaultIssuerID)
 	if err != nil {
-		return nil, errutil.InternalError{Err: fmt.Sprintf("unable to fetch the default issuer: %w", err)}
+		return nil, errutil.InternalError{Err: fmt.Sprintf("unable to fetch the default issuer: %s", err)}
 	}
 
 	return issuer, nil
