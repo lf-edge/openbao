@@ -519,7 +519,7 @@ or submited, returning their identifier, name (if set) and public key.
 `
 	pathIssuersSyn  = `Fetch a single issuer.`
 	pathIssuersDesc = `
-This allows fetching information associated with the issuer
+This endpoint allows fetching information associated with the issuer
 reference provided.
 
 :issuer_ref can be either the literal value "default", in which case /config/issuers
