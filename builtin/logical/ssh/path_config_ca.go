@@ -129,7 +129,7 @@ func (b *backend) pathConfigCARead(ctx context.Context, req *logical.Request, da
 
 	issuer, err := sc.fetchDefaultIssuer()
 	if err != nil {
-		handleStorageContextErr(err)
+		return handleStorageContextErr(err)
 	}
 
 	return respondReadIssuer(issuer)
@@ -177,6 +177,7 @@ func (b *backend) pathConfigCADelete(ctx context.Context, req *logical.Request, 
 	return response, nil
 }
 
+// NOTE (gabrielopesantos): Once we are done with the implementation this function shouldn't be needed anymore
 func caKey(ctx context.Context, storage logical.Storage, keyType string) (*keyStorageEntry, error) {
 	var path, deprecatedPath string
 	switch keyType {
