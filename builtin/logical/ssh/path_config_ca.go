@@ -177,7 +177,6 @@ func (b *backend) pathConfigCADelete(ctx context.Context, req *logical.Request, 
 	return response, nil
 }
 
-// NOTE (gabrielopesantos): Once we are done with the implementation this function shouldn't be needed anymore
 func caKey(ctx context.Context, storage logical.Storage, keyType string) (*keyStorageEntry, error) {
 	var path, deprecatedPath string
 	switch keyType {

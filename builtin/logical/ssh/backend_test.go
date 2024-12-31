@@ -2738,18 +2738,24 @@ func TestProperAuthing(t *testing.T) {
 	// key := resp.Data["key"].(string)
 
 	paths := map[string]pathAuthChecker{
-		"config/ca":          shouldBeAuthed,
-		"config/zeroaddress": shouldBeAuthed,
-		"creds/test-otp":     shouldBeAuthed,
-		"issue/test-ca":      shouldBeAuthed,
-		"lookup":             shouldBeAuthed,
-		"public_key":         shouldBeUnauthedReadList,
-		"roles/test-ca":      shouldBeAuthed,
-		"roles/test-otp":     shouldBeAuthed,
-		"roles":              shouldBeAuthed,
-		"sign/test-ca":       shouldBeAuthed,
-		"tidy/dynamic-keys":  shouldBeAuthed,
-		"verify":             shouldBeUnauthedWriteOnly,
+		"config/ca":                 shouldBeAuthed,
+		"config/zeroaddress":        shouldBeAuthed,
+		"config/issuers":            shouldBeAuthed,
+		"creds/test-otp":            shouldBeAuthed,
+		"issue/test-ca":             shouldBeAuthed,
+		"lookup":                    shouldBeAuthed,
+		"public_key":                shouldBeUnauthedReadList,
+		"roles/test-ca":             shouldBeAuthed,
+		"roles/test-otp":            shouldBeAuthed,
+		"roles":                     shouldBeAuthed,
+		"sign/test-ca":              shouldBeAuthed,
+		"tidy/dynamic-keys":         shouldBeAuthed,
+		"verify":                    shouldBeUnauthedWriteOnly,
+		"issuer/default/public_key": shouldBeUnauthedReadList,
+		"issuer/default":            shouldBeAuthed,
+		"issuers/import/test":       shouldBeAuthed,
+		"issuers/import":            shouldBeAuthed,
+		"issuers":                   shouldBeAuthed,
 	}
 	for path, checkerType := range paths {
 		checker := pathAuthChckerMap[checkerType]
@@ -2786,6 +2792,12 @@ func TestProperAuthing(t *testing.T) {
 		}
 		if strings.Contains(raw_path, "{role}") && strings.Contains(raw_path, "creds") {
 			raw_path = strings.ReplaceAll(raw_path, "{role}", "test-otp")
+		}
+		if strings.Contains(raw_path, "{issuer_ref}") && (strings.Contains(raw_path, "issuer") || strings.Contains(raw_path, "issuers")) {
+			raw_path = strings.ReplaceAll(raw_path, "{issuer_ref}", "default")
+		}
+		if strings.Contains(raw_path, "{issuer_name}") && (strings.Contains(raw_path, "issuer") || strings.Contains(raw_path, "issuers")) {
+			raw_path = strings.ReplaceAll(raw_path, "{issuer_name}", "test")
 		}
 
 		handler, present := paths[raw_path]
