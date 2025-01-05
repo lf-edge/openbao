@@ -12,8 +12,7 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-// NOTE (gabrielopesantos): To be finished
-func TestSSH_ConfigCASubmitDefaultCAIssuer(t *testing.T) {
+func TestSSH_ConfigCASubmitDefaultIssuer(t *testing.T) {
 	// create backend config
 	config := logical.TestBackendConfig()
 	config.StorageView = &logical.InmemStorage{}
@@ -24,7 +23,7 @@ func TestSSH_ConfigCASubmitDefaultCAIssuer(t *testing.T) {
 		t.Fatalf("Cannot create backend: %s", err)
 	}
 
-	// Create a role for ssh signing.
+	// create a role to issue against
 	roleOptions := map[string]interface{}{
 		"allow_user_certificates": true,
 		"allowed_users":           "*",
@@ -43,7 +42,7 @@ func TestSSH_ConfigCASubmitDefaultCAIssuer(t *testing.T) {
 		t.Fatalf("cannot create role to issue against: %s", err)
 	}
 
-	// create a default CA to sign with.
+	// create a default CA issuer to sign with
 	createDefaultCaOptions := map[string]interface{}{
 		"key_type":             "rsa",
 		"key_bits":             2048,
@@ -69,9 +68,9 @@ func TestSSH_ConfigCASubmitDefaultCAIssuer(t *testing.T) {
 		t.Fatalf("expected a public key but got none")
 	}
 
+	// issue a signed key
 	issueOptions := map[string]interface{}{
-		"public_key":       testCAPublicKeyEd25519,
-		"valid_principals": "toor",
+		"public_key": testCAPublicKeyEd25519,
 	}
 	issueReq := &logical.Request{
 		Path:      "sign/ca-issuance",
@@ -153,7 +152,7 @@ func TestSSH_ConfigCAPurgeIssuers(t *testing.T) {
 		}
 	}
 
-	// List all isuers make sure none are present
+	// list all isuers make sure all are present
 	listReq := &logical.Request{
 		Operation: logical.ListOperation,
 		Path:      "issuers",
@@ -168,7 +167,7 @@ func TestSSH_ConfigCAPurgeIssuers(t *testing.T) {
 		t.Fatalf("expected three issuers but got %d", len(resp.Data))
 	}
 
-	// purge all CA issuers
+	// purge all issuers
 	purgeReq := &logical.Request{
 		Operation: logical.DeleteOperation,
 		Path:      "config/ca",
@@ -179,7 +178,7 @@ func TestSSH_ConfigCAPurgeIssuers(t *testing.T) {
 		t.Fatalf("cannot purge CA issuers: err: %v, resp: %v", err, resp)
 	}
 
-	// List all isuers make sure none are present
+	// list all isuers make sure none are present
 	resp, err = b.HandleRequest(context.Background(), listReq)
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("cannot list issuers: err: %v, resp: %v", err, resp)
@@ -201,7 +200,7 @@ func TestSSH_ConfigCAReadDefaultIssuer(t *testing.T) {
 		t.Fatalf("Cannot create backend: %s", err)
 	}
 
-	// Submit an issuer and set as default
+	// submit an issuer and set as default
 	createCaIssuerOptions := map[string]interface{}{
 		"set_as_default": true,
 	}
@@ -216,7 +215,7 @@ func TestSSH_ConfigCAReadDefaultIssuer(t *testing.T) {
 		t.Fatalf("cannot submit CA issuer as default: err: %v, resp: %v", err, resp)
 	}
 
-	// override 'default' with existing config/ca endpoint
+	// override existing 'default with 'config/ca' endpoint
 	configDefaultCAOptions := map[string]interface{}{
 		"private_key": testCAPrivateKey,
 		"public_key":  testCAPublicKey,
@@ -232,7 +231,7 @@ func TestSSH_ConfigCAReadDefaultIssuer(t *testing.T) {
 		t.Fatalf("cannot submit a new CA and override existing 'default': err: %v, resp: %v", err, resp)
 	}
 
-	// Read the default issuer
+	// read the 'default' issuer
 	readDefaultIssuerRequest := &logical.Request{
 		Operation: logical.ReadOperation,
 		Path:      "config/ca",
