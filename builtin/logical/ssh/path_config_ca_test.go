@@ -65,7 +65,7 @@ func TestSSH_ConfigCASubmitDefaultIssuer(t *testing.T) {
 
 	caPublicKey := resp.Data["public_key"].(string)
 	if caPublicKey == "" {
-		t.Fatalf("expected a public key but got none")
+		t.Fatal("expected a public key but got none")
 	}
 
 	// issue a signed key
@@ -85,7 +85,7 @@ func TestSSH_ConfigCASubmitDefaultIssuer(t *testing.T) {
 
 	signedKey := resp.Data["signed_key"].(string)
 	if signedKey == "" {
-		t.Fatalf("expected a signed key but got none")
+		t.Fatal("expected a signed key but got none")
 	}
 
 	// prepare test container
@@ -243,7 +243,7 @@ func TestSSH_ConfigCAReadDefaultIssuer(t *testing.T) {
 	}
 
 	if resp.Data["public_key"] == "" {
-		t.Fatalf("expected a public key but got none")
+		t.Fatal("expected a public key but got none")
 	}
 
 	if resp.Data["public_key"] != testCAPublicKey {
