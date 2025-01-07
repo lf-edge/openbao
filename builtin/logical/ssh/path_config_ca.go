@@ -135,7 +135,6 @@ func (b *backend) pathConfigCARead(ctx context.Context, req *logical.Request, da
 	return respondReadIssuer(issuer)
 }
 
-// NOTE (gabrielopesantos): What behavior do we want here?
 func (b *backend) pathConfigCADelete(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 	// Since we're planning on updating issuers here, grab the lock so we've
 	// got a consistent view.
@@ -235,6 +234,16 @@ func (b *backend) pathConfigCAUpdate(ctx context.Context, req *logical.Request, 
 	b.issuersLock.Lock()
 	defer b.issuersLock.Unlock()
 
+	publicKey, privateKey, err := b.keys(data)
+	if err != nil {
+		switch err.(type) {
+		case errutil.InternalError:
+			return nil, err
+		default:
+			return logical.ErrorResponse(err.Error()), nil
+		}
+	}
+
 	// Use the transaction storage if there's one.
 	if txnStorage, ok := req.Storage.(logical.TransactionalStorage); ok {
 		txn, err := txnStorage.BeginTx(ctx)
@@ -248,30 +257,14 @@ func (b *backend) pathConfigCAUpdate(ctx context.Context, req *logical.Request, 
 
 	sc := b.makeStorageContext(ctx, req.Storage)
 
-	publicKey, privateKey, err := b.keys(data)
-	if err != nil {
-		switch err.(type) {
-		case errutil.InternalError:
-			return nil, err
-		default:
-			return logical.ErrorResponse(err.Error()), nil
-		}
-	}
-
 	// Create a new issuer entry
 	id, err := uuid.GenerateUUID()
 	if err != nil {
 		return nil, fmt.Errorf("error generating issuer's unique identifier: %w", err)
 	}
 	name, err := getIssuerName(sc, data)
-	// NOTE (gabrielopesantos): Error handling
 	if err != nil && err != errIssuerNameIsEmpty {
-		switch err.(type) {
-		case errutil.UserError:
-			return logical.ErrorResponse(err.Error()), nil
-		default:
-			return nil, err
-		}
+		return handleStorageContextErr(err)
 	}
 	issuer := &issuerEntry{
 		ID:         issuerID(id),

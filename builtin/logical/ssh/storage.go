@@ -243,16 +243,16 @@ func (sc *storageContext) fetchDefaultIssuer() (*issuerEntry, error) {
 	return issuer, nil
 }
 
-// purgeIssuers fetches all issuers identifiers and deletes them from storage.
+// purgeIssuers fetches all issuer identifiers and deletes them from storage.
 // Returns the number of issuers deleted and an error if any.
 func (sc *storageContext) purgeIssuers() (int, error) {
 	var deleted int
-	issuersIds, err := sc.listIssuers()
+	issuerIds, err := sc.listIssuers()
 	if err != nil {
 		return deleted, err
 	}
 
-	for _, id := range issuersIds {
+	for _, id := range issuerIds {
 		if _, err := sc.deleteIssuer(id); err != nil {
 			return deleted, err
 		}

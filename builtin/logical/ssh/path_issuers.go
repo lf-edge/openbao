@@ -396,12 +396,7 @@ func (b *backend) pathWriteIssuerHandler(ctx context.Context, req *logical.Reque
 	}
 	name, err := getIssuerName(sc, d)
 	if err != nil && err != errIssuerNameIsEmpty {
-		switch err.(type) {
-		case errutil.UserError:
-			return logical.ErrorResponse(err.Error()), nil
-		default:
-			return nil, err
-		}
+		return handleStorageContextErr(err)
 	}
 	issuer := &issuerEntry{
 		ID:         issuerID(id),

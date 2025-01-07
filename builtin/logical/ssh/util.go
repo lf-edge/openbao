@@ -151,7 +151,6 @@ func substQuery(tpl string, data map[string]string) string {
 
 // keys parses the input parameters and returns the public and private keys
 // by either generating them or using the provided ones.
-// NOTE: The code is exactly the same as the one in `pathConfigCAUpdate`.
 func (b *backend) keys(data *framework.FieldData) (string, string, error) {
 	var err error
 	publicKey := data.Get("public_key").(string)
