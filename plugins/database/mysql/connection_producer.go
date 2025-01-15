@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"github.com/go-sql-driver/mysql"
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/hashicorp/go-secure-stdlib/parseutil"
 	"github.com/hashicorp/go-uuid"
-	"github.com/mitchellh/mapstructure"
 	"github.com/openbao/openbao/sdk/v2/database/helper/connutil"
 	"github.com/openbao/openbao/sdk/v2/database/helper/dbutil"
 )

@@ -23,6 +23,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/hashicorp/errwrap"
 	log "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -30,7 +31,6 @@ import (
 	"github.com/hashicorp/go-secure-stdlib/parseutil"
 	"github.com/hashicorp/go-secure-stdlib/strutil"
 	semver "github.com/hashicorp/go-version"
-	"github.com/mitchellh/mapstructure"
 	"github.com/openbao/openbao/helper/hostutil"
 	"github.com/openbao/openbao/helper/identity"
 	"github.com/openbao/openbao/helper/locking"

@@ -33,8 +33,8 @@ import (
 	"github.com/openbao/openbao/sdk/v2/logical"
 	"github.com/openbao/openbao/vault"
 
+	"github.com/go-viper/mapstructure/v2"
 	uuid "github.com/hashicorp/go-uuid"
-	"github.com/mitchellh/mapstructure"
 
 	"github.com/stretchr/testify/require"
 )

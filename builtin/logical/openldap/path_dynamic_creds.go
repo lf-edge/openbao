@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/go-ldap/ldif"
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/hashicorp/go-multierror"
-	"github.com/mitchellh/mapstructure"
 	"github.com/openbao/openbao/builtin/logical/openldap/client"
 	"github.com/openbao/openbao/sdk/v2/framework"
 	"github.com/openbao/openbao/sdk/v2/helper/template"

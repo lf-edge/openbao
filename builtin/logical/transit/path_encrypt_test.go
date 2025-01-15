@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/go-viper/mapstructure/v2"
 	uuid "github.com/hashicorp/go-uuid"
-	"github.com/mitchellh/mapstructure"
 	"github.com/openbao/openbao/sdk/v2/logical"
 )
 

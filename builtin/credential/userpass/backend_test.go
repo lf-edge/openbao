@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/go-test/deep"
+	"github.com/go-viper/mapstructure/v2"
 	sockaddr "github.com/hashicorp/go-sockaddr"
-	"github.com/mitchellh/mapstructure"
 	logicaltest "github.com/openbao/openbao/helper/testhelpers/logical"
 	"github.com/openbao/openbao/sdk/v2/helper/policyutil"
 	"github.com/openbao/openbao/sdk/v2/helper/tokenutil"

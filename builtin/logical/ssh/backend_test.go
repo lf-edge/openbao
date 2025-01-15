@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mitchellh/mapstructure"
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/openbao/openbao/api/v2"
 	"github.com/openbao/openbao/builtin/credential/userpass"
 	"github.com/openbao/openbao/helper/testhelpers/corehelpers"

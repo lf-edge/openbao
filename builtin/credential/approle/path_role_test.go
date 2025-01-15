@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/go-test/deep"
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/hashicorp/go-sockaddr"
-	"github.com/mitchellh/mapstructure"
 	"github.com/openbao/openbao/sdk/v2/helper/policyutil"
 	"github.com/openbao/openbao/sdk/v2/helper/testhelpers/schema"
 	"github.com/openbao/openbao/sdk/v2/helper/tokenutil"

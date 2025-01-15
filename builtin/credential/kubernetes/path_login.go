@@ -12,9 +12,9 @@ import (
 
 	"github.com/go-jose/go-jose/v3"
 	josejwt "github.com/go-jose/go-jose/v3/jwt"
+	"github.com/go-viper/mapstructure/v2"
 	capjwt "github.com/hashicorp/cap/jwt"
 	"github.com/hashicorp/go-secure-stdlib/strutil"
-	"github.com/mitchellh/mapstructure"
 	"github.com/openbao/openbao/sdk/v2/framework"
 	"github.com/openbao/openbao/sdk/v2/helper/cidrutil"
 	"github.com/openbao/openbao/sdk/v2/logical"

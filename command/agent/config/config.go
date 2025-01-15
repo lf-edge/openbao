@@ -15,11 +15,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-secure-stdlib/parseutil"
 	"github.com/hashicorp/hcl"
 	"github.com/hashicorp/hcl/hcl/ast"
-	"github.com/mitchellh/mapstructure"
 	ctconfig "github.com/openbao/openbao-template/config"
 	ctsignals "github.com/openbao/openbao-template/signals"
 	"k8s.io/utils/strings/slices"

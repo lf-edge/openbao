@@ -15,10 +15,10 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/hashicorp/go-secure-stdlib/parseutil"
 	"github.com/hashicorp/raft"
 	autopilot "github.com/hashicorp/raft-autopilot"
-	"github.com/mitchellh/mapstructure"
 	"github.com/openbao/openbao/api/v2"
 	"go.uber.org/atomic"
 )

@@ -11,12 +11,12 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/hashicorp/errwrap"
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl"
 	"github.com/hashicorp/hcl/hcl/ast"
-	"github.com/mitchellh/mapstructure"
 )
 
 const (

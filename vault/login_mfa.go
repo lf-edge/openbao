@@ -19,6 +19,7 @@ import (
 
 	duoapi "github.com/duosecurity/duo_api_golang"
 	"github.com/duosecurity/duo_api_golang/authapi"
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/errwrap"
@@ -27,7 +28,6 @@ import (
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-uuid"
-	"github.com/mitchellh/mapstructure"
 	"github.com/okta/okta-sdk-golang/v2/okta"
 	"github.com/okta/okta-sdk-golang/v2/okta/query"
 	"github.com/openbao/openbao/helper/identity"

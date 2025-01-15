@@ -27,8 +27,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/hashicorp/errwrap"
-	"github.com/mitchellh/mapstructure"
 	"github.com/openbao/openbao/sdk/v2/helper/errutil"
 	"github.com/openbao/openbao/sdk/v2/helper/jsonutil"
 	"golang.org/x/crypto/cryptobyte"

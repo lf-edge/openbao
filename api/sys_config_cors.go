@@ -8,7 +8,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/mitchellh/mapstructure"
+	"github.com/go-viper/mapstructure/v2"
 )
 
 func (c *Sys) CORSStatus() (*CORSResponse, error) {

@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/go-test/deep"
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/errwrap"
@@ -24,7 +25,6 @@ import (
 	"github.com/hashicorp/go-secure-stdlib/parseutil"
 	"github.com/hashicorp/go-sockaddr"
 	"github.com/hashicorp/go-uuid"
-	"github.com/mitchellh/mapstructure"
 	"github.com/openbao/openbao/helper/benchhelpers"
 	"github.com/openbao/openbao/helper/identity"
 	"github.com/openbao/openbao/helper/metricsutil"

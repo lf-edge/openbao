@@ -22,8 +22,8 @@ import (
 	"time"
 
 	josejwt "github.com/go-jose/go-jose/v3/jwt"
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/hashicorp/go-uuid"
-	"github.com/mitchellh/mapstructure"
 	"github.com/openbao/openbao/sdk/v2/helper/tokenutil"
 	"github.com/openbao/openbao/sdk/v2/logical"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"

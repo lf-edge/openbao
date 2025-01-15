@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/mitchellh/mapstructure"
+	"github.com/go-viper/mapstructure/v2"
 )
 
 func (c *Sys) ListMounts() (map[string]*MountOutput, error) {

@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mitchellh/mapstructure"
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/openbao/openbao/helper/namespace"
 	logicaltest "github.com/openbao/openbao/helper/testhelpers/logical"
 	"github.com/openbao/openbao/sdk/v2/logical"

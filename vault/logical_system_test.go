@@ -18,9 +18,9 @@ import (
 
 	"github.com/fatih/structs"
 	"github.com/go-test/deep"
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/hashicorp/go-hclog"
 	semver "github.com/hashicorp/go-version"
-	"github.com/mitchellh/mapstructure"
 	credUserpass "github.com/openbao/openbao/builtin/credential/userpass"
 	"github.com/openbao/openbao/helper/builtinplugins"
 	"github.com/openbao/openbao/helper/identity"

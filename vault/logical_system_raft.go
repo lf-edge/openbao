@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/golang/protobuf/proto"
-	"github.com/mitchellh/mapstructure"
 	wrapping "github.com/openbao/go-kms-wrapping/v2"
 	"github.com/openbao/openbao/helper/namespace"
 	"github.com/openbao/openbao/physical/raft"

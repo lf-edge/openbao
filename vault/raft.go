@@ -15,6 +15,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-discover"
@@ -22,7 +23,6 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-secure-stdlib/tlsutil"
 	"github.com/hashicorp/go-uuid"
-	"github.com/mitchellh/mapstructure"
 	wrapping "github.com/openbao/go-kms-wrapping/v2"
 	"github.com/openbao/openbao/api/v2"
 	"github.com/openbao/openbao/physical/raft"

@@ -36,7 +36,7 @@ import (
 	"github.com/openbao/openbao/api/v2"
 	vaulthttp "github.com/openbao/openbao/http"
 
-	"github.com/mitchellh/mapstructure"
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/openbao/openbao/builtin/logical/pki"
 	logicaltest "github.com/openbao/openbao/helper/testhelpers/logical"
 	"github.com/openbao/openbao/sdk/v2/framework"

@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/hashicorp/go-secure-stdlib/base62"
-	"github.com/mitchellh/mapstructure"
 	"github.com/openbao/openbao/sdk/v2/framework"
 	"github.com/openbao/openbao/sdk/v2/helper/consts"
 	"github.com/openbao/openbao/sdk/v2/helper/locksutil"

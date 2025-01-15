@@ -13,9 +13,9 @@ import (
 
 	goldap "github.com/go-ldap/ldap/v3"
 	"github.com/go-test/deep"
+	"github.com/go-viper/mapstructure/v2"
 	hclog "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-secure-stdlib/strutil"
-	"github.com/mitchellh/mapstructure"
 	"github.com/openbao/openbao/helper/namespace"
 	"github.com/openbao/openbao/helper/testhelpers/ldap"
 	logicaltest "github.com/openbao/openbao/helper/testhelpers/logical"

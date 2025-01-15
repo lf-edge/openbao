@@ -14,8 +14,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/hashicorp/go-secure-stdlib/parseutil"
-	"github.com/mitchellh/mapstructure"
 )
 
 var ErrIncompleteSnapshot = errors.New("incomplete snapshot, unable to read SHA256SUMS.sealed file")
