@@ -98,7 +98,6 @@ func (b *backend) pathSignIssueCertificateHelper(sc *storageContext, req *logica
 		return logical.ErrorResponse(err.Error()), nil
 	}
 
-	// TODO (gabrielopesantos): Review
 	issuerId, err := sc.resolveIssuerReference(role.Issuer)
 	if err != nil {
 		return handleStorageContextErr(err)
@@ -107,7 +106,7 @@ func (b *backend) pathSignIssueCertificateHelper(sc *storageContext, req *logica
 	if err != nil {
 		return handleStorageContextErr(err)
 	}
-	//
+
 	privateKey := issuer.PrivateKey
 
 	signer, err := ssh.ParsePrivateKey([]byte(privateKey))
