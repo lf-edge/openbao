@@ -5,7 +5,6 @@ package ssh
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"sync"
 
