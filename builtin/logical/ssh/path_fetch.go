@@ -39,7 +39,7 @@ func (b *backend) pathFetchPublicKey(ctx context.Context, req *logical.Request, 
 	}
 
 	if issuer == nil {
-		return logical.ErrorResponse("No keyuaslkdjnmaskldjaskld"), nil
+		return logical.ErrorResponse("No key corresponding to issuer"), nil
 	}
 
 	response := &logical.Response{
