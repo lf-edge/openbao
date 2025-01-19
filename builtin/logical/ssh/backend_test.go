@@ -2751,11 +2751,11 @@ func TestProperAuthing(t *testing.T) {
 		"sign/test-ca":              shouldBeAuthed,
 		"tidy/dynamic-keys":         shouldBeAuthed,
 		"verify":                    shouldBeUnauthedWriteOnly,
-		"issuer/default/public_key": shouldBeUnauthedReadList,
-		"issuer/default":            shouldBeAuthed,
-		"issuers/import/test":       shouldBeAuthed,
-		"issuers/import":            shouldBeAuthed,
 		"issuers":                   shouldBeAuthed,
+		"issuers/import":            shouldBeAuthed,
+		"issuers/import/test":       shouldBeAuthed,
+		"issuer/default":            shouldBeAuthed,
+		"issuer/default/public_key": shouldBeUnauthedReadList,
 	}
 	for path, checkerType := range paths {
 		checker := pathAuthChckerMap[checkerType]
