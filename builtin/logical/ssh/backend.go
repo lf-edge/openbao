@@ -57,7 +57,7 @@ func Backend(conf *logical.BackendConfig) (*backend, error) {
 				caPrivateKey,
 				caPrivateKeyStoragePath,
 				keysStoragePrefix,
-				fmt.Sprintf("%s+", issuerPrefix),
+				issuerPrefix,
 				storageIssuerConfig,
 			},
 		},
