@@ -32,26 +32,20 @@ const (
 	uuidLength = 36
 )
 
-type issuerID string
-
-func (i issuerID) String() string {
-	return string(i)
-}
-
 const (
-	IssuerRefNotFound = issuerID("not-found")
+	IssuerRefNotFound = "not-found"
 )
 
 type issuerEntry struct {
-	ID         issuerID `json:"id"`
-	Name       string   `json:"name"`
-	PublicKey  string   `json:"public_key"`
-	PrivateKey string   `json:"private_key"`
-	Version    uint     `json:"version"`
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	PublicKey  string `json:"public_key"`
+	PrivateKey string `json:"private_key"`
+	Version    uint   `json:"version"`
 }
 
 type issuerConfigEntry struct {
-	DefaultIssuerID issuerID `json:"default"`
+	DefaultIssuerID string `json:"default"`
 }
 
 type storageContext struct {
@@ -73,7 +67,7 @@ func (b *backend) makeStorageContext(ctx context.Context, s logical.Storage) *st
 func (sc *storageContext) writeIssuer(issuer *issuerEntry) error {
 	issuerId := issuer.ID
 
-	json, err := logical.StorageEntryJSON(issuerPrefix+issuerId.String(), issuer)
+	json, err := logical.StorageEntryJSON(issuerPrefix+issuerId, issuer)
 	if err != nil {
 		return err
 	}
@@ -83,7 +77,7 @@ func (sc *storageContext) writeIssuer(issuer *issuerEntry) error {
 
 // deleteIssuer removes an issuer from storage and unsets from default, if was.
 // Returns a boolean indicating if the issuer was the default issuer
-func (sc *storageContext) deleteIssuer(id issuerID) (bool, error) {
+func (sc *storageContext) deleteIssuer(id string) (bool, error) {
 	config, err := sc.getIssuersConfig()
 	if err != nil {
 		return false, err
@@ -92,13 +86,13 @@ func (sc *storageContext) deleteIssuer(id issuerID) (bool, error) {
 	wasDefault := false
 	if config.DefaultIssuerID == id {
 		wasDefault = true
-		config.DefaultIssuerID = issuerID("")
+		config.DefaultIssuerID = ""
 		if err := sc.setIssuersConfig(config); err != nil {
 			return wasDefault, err
 		}
 	}
 
-	return wasDefault, sc.Storage.Delete(sc.Context, issuerPrefix+id.String())
+	return wasDefault, sc.Storage.Delete(sc.Context, issuerPrefix+id)
 }
 
 // setIssuersConfig writes the issuers configuration to storage
@@ -133,51 +127,50 @@ func (sc *storageContext) getIssuersConfig() (*issuerConfigEntry, error) {
 }
 
 // listIssuers returns a list of all issuer identifiers
-func (sc *storageContext) listIssuers() ([]issuerID, error) {
+func (sc *storageContext) listIssuers() ([]string, error) {
 	return sc.listIssuersPage("", -1)
 }
 
 // listIssuersPage returns a list of issuer identifiers starting after the given identifier
-func (sc *storageContext) listIssuersPage(after string, limit int) ([]issuerID, error) {
+func (sc *storageContext) listIssuersPage(after string, limit int) ([]string, error) {
 	strList, err := sc.Storage.ListPage(sc.Context, issuerPrefix, after, limit)
 	if err != nil {
 		return nil, err
 	}
 
-	issuerIds := make([]issuerID, 0, len(strList))
+	issuerIds := make([]string, 0, len(strList))
 	for _, entry := range strList {
-		issuerIds = append(issuerIds, issuerID(entry))
+		issuerIds = append(issuerIds, entry)
 	}
 
 	return issuerIds, nil
 }
 
 // fetchIssuerById returns an issuer entry based on issuerId, if none found an error is returned.
-func (sc *storageContext) fetchIssuerById(issuerId issuerID) (*issuerEntry, error) {
+func (sc *storageContext) fetchIssuerById(issuerId string) (*issuerEntry, error) {
 	if len(issuerId) == 0 {
 		return nil, errutil.InternalError{Err: "unable to fetch ssh issuer: empty issuer identifier"}
 	}
 
-	entry, err := sc.Storage.Get(sc.Context, issuerPrefix+issuerId.String())
+	entry, err := sc.Storage.Get(sc.Context, issuerPrefix+issuerId)
 	if err != nil {
 		return nil, errutil.InternalError{Err: fmt.Sprintf("unable to fetch ssh issuer: %v", err)}
 	}
 	if entry == nil {
-		return nil, errutil.UserError{Err: fmt.Sprintf("ssh issuer id '%s' does not exist", issuerId.String())}
+		return nil, errutil.UserError{Err: fmt.Sprintf("ssh issuer id '%s' does not exist", issuerId)}
 	}
 
 	var issuer issuerEntry
 	if err := entry.DecodeJSON(&issuer); err != nil {
-		return nil, errutil.InternalError{Err: fmt.Sprintf("unable to decode ssh issuer with id %s: %v", issuerId.String(), err)}
+		return nil, errutil.InternalError{Err: fmt.Sprintf("unable to decode ssh issuer with id %s: %v", issuerId, err)}
 	}
 
 	return &issuer, nil
 }
 
 // Lookup within storage the value of reference, assuming the string is a
-// reference to an issuer entry, returning the converted issuerID or an error
-// if not found.
-func (sc *storageContext) resolveIssuerReference(ref string) (issuerID, error) {
+// reference to an issuer entry, returning the id or an error if not found.
+func (sc *storageContext) resolveIssuerReference(ref string) (string, error) {
 	if ref == defaultRef {
 		// If reference is 'default', fetch the default issuer ID from the configuration
 		issuerConfig, err := sc.getIssuersConfig()
@@ -198,7 +191,7 @@ func (sc *storageContext) resolveIssuerReference(ref string) (issuerID, error) {
 			return "", err
 		}
 		if entry != nil {
-			return issuerID(ref), nil
+			return ref, nil
 		}
 	}
 

@@ -399,7 +399,7 @@ func (b *backend) pathWriteIssuerHandler(ctx context.Context, req *logical.Reque
 		return handleStorageContextErr(err)
 	}
 	issuer := &issuerEntry{
-		ID:         issuerID(id),
+		ID:         id,
 		Name:       name,
 		PublicKey:  publicKey,
 		PrivateKey: privateKey,
@@ -416,7 +416,7 @@ func (b *backend) pathWriteIssuerHandler(ctx context.Context, req *logical.Reque
 	setDefault := d.Get("set_default").(bool)
 	if setDefault {
 		// Update issuers config to set new issuer as the 'default'
-		err = sc.setIssuersConfig(&issuerConfigEntry{DefaultIssuerID: issuerID(id)})
+		err = sc.setIssuersConfig(&issuerConfigEntry{DefaultIssuerID: id})
 		if err != nil {
 			// It is not possible to have this error in the transaction, so check
 			// storage type and skip if is a transaction

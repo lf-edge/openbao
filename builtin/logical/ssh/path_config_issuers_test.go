@@ -30,7 +30,7 @@ func TestSSH_ConfigIssuers(t *testing.T) {
 	}
 
 	// check if the 'default' keyword exists and the value is an empty string
-	if resp.Data["default"] != issuerID("") {
+	if resp.Data["default"] != "" {
 		t.Fatalf("expected an empty string but got '%v'", resp.Data["default"])
 	}
 
@@ -48,7 +48,7 @@ func TestSSH_ConfigIssuers(t *testing.T) {
 	}
 
 	// parse 'default' issuer's id
-	defaultIssuerId := resp.Data["issuer_id"].(issuerID)
+	defaultIssuerId := resp.Data["issuer_id"]
 
 	// read the 'default' issuer
 	resp, err = b.HandleRequest(context.Background(), &logical.Request{
@@ -77,7 +77,7 @@ func TestSSH_ConfigIssuers(t *testing.T) {
 	}
 
 	// parse 'test-issuer's id
-	testIssuerId := resp.Data["issuer_id"].(issuerID)
+	testIssuerId := resp.Data["issuer_id"]
 
 	// set 'test-issuer' as the 'default' issuer
 	resp, err = b.HandleRequest(context.Background(), &logical.Request{

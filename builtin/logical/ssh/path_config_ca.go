@@ -267,7 +267,7 @@ func (b *backend) pathConfigCAUpdate(ctx context.Context, req *logical.Request, 
 		return handleStorageContextErr(err)
 	}
 	issuer := &issuerEntry{
-		ID:         issuerID(id),
+		ID:         id,
 		Name:       name,
 		PublicKey:  publicKey,
 		PrivateKey: privateKey,
@@ -282,7 +282,7 @@ func (b *backend) pathConfigCAUpdate(ctx context.Context, req *logical.Request, 
 	response, err := respondReadIssuer(issuer)
 
 	// Update issuers config to set new issuers as the 'default'
-	err = sc.setIssuersConfig(&issuerConfigEntry{DefaultIssuerID: issuerID(id)})
+	err = sc.setIssuersConfig(&issuerConfigEntry{DefaultIssuerID: id})
 	if err != nil {
 		// It is not possible to have this error in the transaction, so check
 		// storage type and skip if is a transaction
