@@ -21,7 +21,7 @@ type backend struct {
 	salt      *salt.Salt
 	saltMutex sync.RWMutex
 	// Write lock around issuers
-	issuersLock sync.RWMutex
+	issuersLock sync.Mutex
 }
 
 func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend, error) {
