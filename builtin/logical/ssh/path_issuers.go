@@ -93,7 +93,7 @@ func pathSubmitIssuer(b *backend) *framework.Path {
 
 	fields["set_default"] = &framework.FieldSchema{
 		Type:        framework.TypeBool,
-		Description: `If true, this issuer will be set as the default issuer for performing operations. Only one issuer can be the default issuer and, if there's one set, it will be overrided.`,
+		Description: `If true, this issuer will be set as the default issuer for performing operations. Only one issuer can be the default issuer and, if there's one set, it will be overridden.`,
 		Default:     false,
 	}
 
@@ -198,7 +198,7 @@ func pathListIssuers(b *backend) *framework.Path {
 	}
 }
 
-func pathGetIssuerUnauthenticated(b *backend) *framework.Path {
+func pathGetIssuerPublicKeyUnauthenticated(b *backend) *framework.Path {
 	return &framework.Path{
 		Pattern: "issuer/" + framework.GenericNameRegex("issuer_ref") + "/public_key",
 
@@ -217,7 +217,7 @@ func pathGetIssuerUnauthenticated(b *backend) *framework.Path {
 
 		Operations: map[logical.Operation]framework.OperationHandler{
 			logical.ReadOperation: &framework.PathOperation{
-				Callback: b.pathReadIssuerHandler,
+				Callback: b.pathGetIssuerPublicKeyHandler,
 				Responses: map[int][]framework.Response{
 					http.StatusOK: {
 						{
@@ -250,6 +250,31 @@ func pathGetIssuerUnauthenticated(b *backend) *framework.Path {
 	}
 }
 
+func (b *backend) pathGetIssuerPublicKeyHandler(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+	issuerRef := getIssuerRef(d)
+
+	sc := b.makeStorageContext(ctx, req.Storage)
+	id, err := sc.resolveIssuerReference(issuerRef)
+	if err != nil {
+		return handleStorageContextErr(err)
+	}
+
+	issuer, err := sc.fetchIssuerById(id)
+	if err != nil {
+		return handleStorageContextErr(err)
+	}
+
+	response := &logical.Response{
+		Data: map[string]interface{}{
+			logical.HTTPContentType: "text/plain",
+			logical.HTTPRawBody:     []byte(issuer.PublicKey),
+			logical.HTTPStatusCode:  200,
+		},
+	}
+
+	return response, nil
+}
+
 func (b *backend) pathReadIssuerHandler(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	issuerRef := getIssuerRef(d)
 
@@ -264,6 +289,7 @@ func (b *backend) pathReadIssuerHandler(ctx context.Context, req *logical.Reques
 		return handleStorageContextErr(err)
 	}
 
+	// NOTE (gabrielopesantos): Do we want to return whether the issuer is the default one?
 	return respondReadIssuer(entry)
 }
 

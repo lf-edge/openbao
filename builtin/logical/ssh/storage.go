@@ -178,7 +178,7 @@ func (sc *storageContext) resolveIssuerReference(ref string) (string, error) {
 			return "", err
 		}
 		if len(issuerConfig.DefaultIssuerID) == 0 {
-			return IssuerRefNotFound, errutil.UserError{Err: "no default issuer configured"}
+			return IssuerRefNotFound, errutil.UserError{Err: "no default issuer currently configured"}
 		}
 
 		return issuerConfig.DefaultIssuerID, nil
@@ -224,8 +224,8 @@ func (sc *storageContext) fetchDefaultIssuer() (*issuerEntry, error) {
 		return nil, errutil.InternalError{Err: fmt.Sprintf("unable to fetch the issuer's config: %s", err)}
 	}
 
-	if config.DefaultIssuerID == "" {
-		return nil, errutil.UserError{Err: "A 'default' issuer hasn't been configured yet"}
+	if len(config.DefaultIssuerID) == 0 {
+		return nil, errutil.UserError{Err: "no default issuer currently configured"}
 	}
 
 	issuer, err := sc.fetchIssuerById(config.DefaultIssuerID)

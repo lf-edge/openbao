@@ -77,7 +77,7 @@ func Backend(conf *logical.BackendConfig) (*backend, error) {
 			pathIssuers(&b),
 			pathSubmitIssuer(&b),
 			pathListIssuers(&b),
-			pathGetIssuerUnauthenticated(&b),
+			pathGetIssuerPublicKeyUnauthenticated(&b),
 		},
 
 		Secrets: []*framework.Secret{

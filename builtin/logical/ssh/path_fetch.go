@@ -38,10 +38,6 @@ func (b *backend) pathFetchPublicKey(ctx context.Context, req *logical.Request, 
 		return handleStorageContextErr(err)
 	}
 
-	if issuer == nil {
-		return logical.ErrorResponse("No key corresponding to issuer"), nil
-	}
-
 	response := &logical.Response{
 		Data: map[string]interface{}{
 			logical.HTTPContentType: "text/plain",
