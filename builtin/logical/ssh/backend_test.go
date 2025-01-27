@@ -213,17 +213,7 @@ func testSSH(user, host string, auth ssh.AuthMethod, command string) error {
 }
 
 func TestBackend_AllowedUsers(t *testing.T) {
-	config := logical.TestBackendConfig()
-	config.StorageView = &logical.InmemStorage{}
-
-	b, err := Backend(config)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = b.Setup(context.Background(), config)
-	if err != nil {
-		t.Fatal(err)
-	}
+	b, s := CreateBackendWithStorage(t)
 
 	roleData := map[string]interface{}{
 		"key_type":      "otp",
@@ -235,7 +225,7 @@ func TestBackend_AllowedUsers(t *testing.T) {
 	roleReq := &logical.Request{
 		Operation: logical.UpdateOperation,
 		Path:      "roles/role1",
-		Storage:   config.StorageView,
+		Storage:   s,
 		Data:      roleData,
 	}
 
@@ -250,7 +240,7 @@ func TestBackend_AllowedUsers(t *testing.T) {
 	}
 	credsReq := &logical.Request{
 		Operation: logical.UpdateOperation,
-		Storage:   config.StorageView,
+		Storage:   s,
 		Path:      "creds/role1",
 		Data:      credsData,
 	}
@@ -846,12 +836,7 @@ func TestSSHBackend_CA(t *testing.T) {
 func testSSHBackend_CA(t *testing.T, dockerImageTag, caPublicKey, caPrivateKey, algorithmSigner string, expectError bool) {
 	cleanup, sshAddress := prepareTestContainer(t, dockerImageTag, caPublicKey)
 	defer cleanup()
-	config := logical.TestBackendConfig()
-
-	b, err := Factory(context.Background(), config)
-	if err != nil {
-		t.Fatalf("Cannot create backend: %s", err)
-	}
+	b, _ := CreateBackendWithStorage(t)
 
 	testKeyToSignPrivate := `-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABFwAAAAdzc2gtcn
@@ -957,12 +942,7 @@ cKumubUxOfFdy1ZvAAAAEm5jY0BtYnAudWJudC5sb2NhbA==
 func TestSSHBackend_CAUpgradeAlgorithmSigner(t *testing.T) {
 	cleanup, sshAddress := prepareTestContainer(t, dockerImageTagSupportsRSA1, testCAPublicKey)
 	defer cleanup()
-	config := logical.TestBackendConfig()
-
-	b, err := Factory(context.Background(), config)
-	if err != nil {
-		t.Fatalf("Cannot create backend: %s", err)
-	}
+	b, _ := CreateBackendWithStorage(t)
 
 	testKeyToSignPrivate := `-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABFwAAAAdzc2gtcn
@@ -1075,12 +1055,7 @@ cKumubUxOfFdy1ZvAAAAEm5jY0BtYnAudWJudC5sb2NhbA==
 }
 
 func TestBackend_AbleToRetrievePublicKey(t *testing.T) {
-	config := logical.TestBackendConfig()
-
-	b, err := Factory(context.Background(), config)
-	if err != nil {
-		t.Fatalf("Cannot create backend: %s", err)
-	}
+	b, _ := CreateBackendWithStorage(t)
 
 	testCase := logicaltest.TestCase{
 		LogicalBackend: b,
@@ -1109,12 +1084,7 @@ func TestBackend_AbleToRetrievePublicKey(t *testing.T) {
 }
 
 func TestBackend_AbleToAutoGenerateSigningKeys(t *testing.T) {
-	config := logical.TestBackendConfig()
-
-	b, err := Factory(context.Background(), config)
-	if err != nil {
-		t.Fatalf("Cannot create backend: %s", err)
-	}
+	b, _ := CreateBackendWithStorage(t)
 
 	var expectedPublicKey string
 	testCase := logicaltest.TestCase{
@@ -1157,12 +1127,7 @@ func TestBackend_AbleToAutoGenerateSigningKeys(t *testing.T) {
 }
 
 func TestBackend_ValidPrincipalsValidatedForHostCertificates(t *testing.T) {
-	config := logical.TestBackendConfig()
-
-	b, err := Factory(context.Background(), config)
-	if err != nil {
-		t.Fatalf("Cannot create backend: %s", err)
-	}
+	b, _ := CreateBackendWithStorage(t)
 
 	testCase := logicaltest.TestCase{
 		LogicalBackend: b,
@@ -1200,12 +1165,7 @@ func TestBackend_ValidPrincipalsValidatedForHostCertificates(t *testing.T) {
 }
 
 func TestBackend_OptionsOverrideDefaults(t *testing.T) {
-	config := logical.TestBackendConfig()
-
-	b, err := Factory(context.Background(), config)
-	if err != nil {
-		t.Fatalf("Cannot create backend: %s", err)
-	}
+	b, _ := CreateBackendWithStorage(t)
 
 	testCase := logicaltest.TestCase{
 		LogicalBackend: b,
@@ -1248,12 +1208,8 @@ func TestBackend_OptionsOverrideDefaults(t *testing.T) {
 }
 
 func TestBackend_AllowedUserKeyLengths(t *testing.T) {
-	config := logical.TestBackendConfig()
+	b, _ := CreateBackendWithStorage(t)
 
-	b, err := Factory(context.Background(), config)
-	if err != nil {
-		t.Fatalf("Cannot create backend: %s", err)
-	}
 	testCase := logicaltest.TestCase{
 		LogicalBackend: b,
 		Steps: []logicaltest.TestStep{
@@ -1420,12 +1376,7 @@ func TestBackend_AllowedUserKeyLengths(t *testing.T) {
 }
 
 func TestBackend_CustomKeyIDFormat(t *testing.T) {
-	config := logical.TestBackendConfig()
-
-	b, err := Factory(context.Background(), config)
-	if err != nil {
-		t.Fatalf("Cannot create backend: %s", err)
-	}
+	b, _ := CreateBackendWithStorage(t)
 
 	testCase := logicaltest.TestCase{
 		LogicalBackend: b,
@@ -1469,12 +1420,7 @@ func TestBackend_CustomKeyIDFormat(t *testing.T) {
 }
 
 func TestBackend_DisallowUserProvidedKeyIDs(t *testing.T) {
-	config := logical.TestBackendConfig()
-
-	b, err := Factory(context.Background(), config)
-	if err != nil {
-		t.Fatalf("Cannot create backend: %s", err)
-	}
+	b, _ := CreateBackendWithStorage(t)
 
 	testCase := logicaltest.TestCase{
 		LogicalBackend: b,
@@ -1735,12 +1681,8 @@ func TestBackend_DefExtTemplatingDisabled(t *testing.T) {
 }
 
 func TestSSHBackend_ValidateNotBeforeDuration(t *testing.T) {
-	config := logical.TestBackendConfig()
+	b, _ := CreateBackendWithStorage(t)
 
-	b, err := Factory(context.Background(), config)
-	if err != nil {
-		t.Fatalf("Cannot create backend: %s", err)
-	}
 	testCase := logicaltest.TestCase{
 		LogicalBackend: b,
 		Steps: []logicaltest.TestStep{
@@ -1829,12 +1771,7 @@ func TestSSHBackend_ValidateNotBeforeDuration(t *testing.T) {
 }
 
 func TestSSHBackend_IssueSign(t *testing.T) {
-	config := logical.TestBackendConfig()
-
-	b, err := Factory(context.Background(), config)
-	if err != nil {
-		t.Fatalf("Cannot create backend: %s", err)
-	}
+	b, _ := CreateBackendWithStorage(t)
 
 	testCase := logicaltest.TestCase{
 		LogicalBackend: b,
@@ -2425,23 +2362,13 @@ func testCredsWrite(t *testing.T, roleName string, data map[string]interface{}, 
 }
 
 func TestBackend_CleanupDynamicHostKeys(t *testing.T) {
-	config := logical.TestBackendConfig()
-	config.StorageView = &logical.InmemStorage{}
-
-	b, err := Backend(config)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = b.Setup(context.Background(), config)
-	if err != nil {
-		t.Fatal(err)
-	}
+	b, s := CreateBackendWithStorage(t)
 
 	// Running on a clean mount shouldn't do anything.
 	cleanRequest := &logical.Request{
 		Operation: logical.DeleteOperation,
 		Path:      "tidy/dynamic-keys",
-		Storage:   config.StorageView,
+		Storage:   s,
 	}
 
 	resp, err := b.HandleRequest(context.Background(), cleanRequest)
@@ -2459,7 +2386,7 @@ func TestBackend_CleanupDynamicHostKeys(t *testing.T) {
 		}
 		entry, err := logical.StorageEntryJSON(fmt.Sprintf("%vexample-%v", keysStoragePrefix, i), &data)
 		require.NoError(t, err)
-		err = config.StorageView.Put(context.Background(), entry)
+		err = s.Put(context.Background(), entry)
 		require.NoError(t, err)
 	}
 
@@ -2855,13 +2782,7 @@ func updateIssuersConfigStep(parameters map[string]interface{}) logicaltest.Test
 
 // TestSSHBackend_MuiltiCAIssuance tests the ability to issue certificates from multiple CAs
 func TestSSHBackend_MultiCAIssuance(t *testing.T) {
-	config := logical.TestBackendConfig()
-	config.StorageView = &logical.InmemStorage{}
-
-	b, err := Factory(context.Background(), config)
-	if err != nil {
-		t.Fatalf("cannot create backend, got err: %v", err)
-	}
+	b, s := CreateBackendWithStorage(t)
 
 	testKeyToSignPrivate := `-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABFwAAAAdzc2gtcn
@@ -2905,7 +2826,7 @@ cKumubUxOfFdy1ZvAAAAEm5jY0BtYnAudWJudC5sb2NhbA==
 			"default_user":            testUserName,
 			"ttl":                     "30m0s",
 		},
-		Storage: config.StorageView,
+		Storage: s,
 	}
 	resp, err := b.HandleRequest(context.Background(), roleReq)
 	if err != nil || (resp != nil && resp.IsError()) {
@@ -2920,7 +2841,7 @@ cKumubUxOfFdy1ZvAAAAEm5jY0BtYnAudWJudC5sb2NhbA==
 			"public_key":       testKeyToSignPublic,
 			"valid_principals": testUserName,
 		},
-		Storage: config.StorageView,
+		Storage: s,
 	}
 	resp, err = b.HandleRequest(context.Background(), signReq)
 	if err != nil || (resp != nil && !resp.IsError()) {
@@ -2934,7 +2855,7 @@ cKumubUxOfFdy1ZvAAAAEm5jY0BtYnAudWJudC5sb2NhbA==
 		Data: map[string]interface{}{
 			"set_default": true,
 		},
-		Storage: config.StorageView,
+		Storage: s,
 	}
 	resp, err = b.HandleRequest(context.Background(), submitCAIssuerReq)
 	if err != nil || (resp != nil && resp.IsError()) {
@@ -2991,7 +2912,7 @@ cKumubUxOfFdy1ZvAAAAEm5jY0BtYnAudWJudC5sb2NhbA==
 		Data: map[string]interface{}{
 			"set_default": true,
 		},
-		Storage: config.StorageView,
+		Storage: s,
 	}
 	resp, err = b.HandleRequest(context.Background(), submitCAIssuerReq)
 	if err != nil || (resp != nil && resp.IsError()) {
@@ -3005,7 +2926,7 @@ cKumubUxOfFdy1ZvAAAAEm5jY0BtYnAudWJudC5sb2NhbA==
 		Data: map[string]interface{}{
 			"valid_principals": testUserName,
 		},
-		Storage: config.StorageView,
+		Storage: s,
 	}
 	resp, err = b.HandleRequest(context.Background(), issueReq)
 	if err != nil || (resp != nil && resp.IsError()) {
@@ -3042,4 +2963,23 @@ cKumubUxOfFdy1ZvAAAAEm5jY0BtYnAudWJudC5sb2NhbA==
 	if err == nil {
 		t.Fatalf("expected error but got none")
 	}
+}
+
+func CreateBackendWithStorage(t testing.TB) (*backend, logical.Storage) {
+	t.Helper()
+
+	config := logical.TestBackendConfig()
+	config.StorageView = &logical.InmemStorage{}
+
+	b, err := Backend(config)
+	if err != nil {
+		t.Fatalf("cannot create backend, got err: %v", err)
+	}
+
+	err = b.Setup(context.Background(), config)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return b, config.StorageView
 }

@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/openbao/openbao/sdk/v2/framework"
+	"github.com/openbao/openbao/sdk/v2/helper/consts"
 	"github.com/openbao/openbao/sdk/v2/helper/salt"
 	"github.com/openbao/openbao/sdk/v2/logical"
 )
@@ -74,6 +75,7 @@ func Backend(conf *logical.BackendConfig) (*backend, error) {
 			pathFetchPublicKey(&b),
 			pathCleanupKeys(&b),
 			pathConfigIssuers(&b),
+			// Issuer APIs
 			pathIssuers(&b),
 			pathSubmitIssuer(&b),
 			pathListIssuers(&b),
@@ -84,8 +86,9 @@ func Backend(conf *logical.BackendConfig) (*backend, error) {
 			secretOTP(&b),
 		},
 
-		Invalidate:  b.invalidate,
-		BackendType: logical.TypeLogical,
+		Invalidate:     b.invalidate,
+		BackendType:    logical.TypeLogical,
+		InitializeFunc: b.initialize,
 	}
 	return &b, nil
 }
@@ -138,3 +141,52 @@ After mounting this backend, before generating credentials, configure the
 backend's lease behavior using the 'config/lease' endpoint and create roles
 using the 'roles/' endpoint.
 `
+
+// initialize is used to peform a possible SSH storage migration if needed
+func (b *backend) initialize(ctx context.Context, _ *logical.InitializationRequest) error {
+	err := b.initializeIssuersStorage(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (b *backend) initializeIssuersStorage(ctx context.Context) error {
+	// Grab the lock prior to the updating of the storage lock preventing us flipping
+	// the storage flag midway through the request stream of other requests.
+	b.issuersLock.Lock()
+	defer b.issuersLock.Unlock()
+
+	// Use the transaction storage if there's one.
+	storage := b.view
+	if txnStorage, ok := b.view.(logical.TransactionalStorage); ok {
+		txn, err := txnStorage.BeginTx(ctx)
+		if err != nil {
+			return err
+		}
+
+		defer txn.Rollback(ctx)
+		storage = txn
+	}
+
+	// Early exit if not a primary cluster or performance secondary with a local mount.
+	if b.System().ReplicationState().HasState(consts.ReplicationDRSecondary|consts.ReplicationPerformanceStandby) ||
+		(!b.System().LocalMount() && b.System().ReplicationState().HasState(consts.ReplicationPerformanceSecondary)) {
+		b.Logger().Debug("skipping SSH migration as we are not on primary or secondary with a local mount")
+		return nil
+	}
+
+	if err := migrateStorage(ctx, b, storage); err != nil {
+		return err
+	}
+
+	// Commit our transaction if we created one!
+	if txn, ok := storage.(logical.Transaction); ok {
+		if err := txn.Commit(ctx); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
