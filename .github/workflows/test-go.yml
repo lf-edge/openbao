@@ -63,7 +63,7 @@ env: ${{ fromJSON(inputs.env-vars) }}
 
 jobs:
   test-matrix:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runs-on }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
@@ -71,7 +71,8 @@ jobs:
       - uses: ./.github/actions/set-up-go
         name: Setup Git configuration (public)
       - uses: ./.github/actions/set-up-gotestsum
-      - run: mkdir -p test-results/go-test
+      - shell: bash
+        run: mkdir -p test-results/go-test
       - uses: actions/cache/restore@ab5e6d0c87105b4c9c2047343972218f562e4319 # v4.0.1
         with:
           path: test-results/go-test
@@ -79,10 +80,12 @@ jobs:
           restore-keys: go-test-reports-
       - name: List cached results
         id: list-cached-results
+        shell: bash
         run: ls -lhR test-results/go-test
       - name: Build matrix excluding binary, integration, and testonly tests
         id: build-non-binary
         if: ${{ !inputs.testonly }}
+        shell: bash
         run: |
           # testonly tests need additional build tag though let's exclude them anyway for clarity
           (
@@ -92,6 +95,7 @@ jobs:
           )
       - name: Build matrix for tests tagged with testonly
         if: ${{ inputs.testonly }}
+        shell: bash
         run: |
           set -exo pipefail
           # enable glob expansion
@@ -108,11 +112,13 @@ jobs:
       - name: Capture list of binary tests
         if: inputs.binary-tests
         id: list-binary-tests
+        shell: bash
         run: |
           LIST="$(go list ./... github.com/openbao/openbao/api/v2/... github.com/openbao/openbao/sdk/v2/... | grep "_binary" | xargs)"
           echo "list=$LIST" >> "$GITHUB_OUTPUT"
       - name: Build complete matrix
         id: build
+        shell: bash
         run: |
           set -exo pipefail
           matrix_file="matrix.json"
@@ -145,7 +151,7 @@ jobs:
 
   test-go:
     needs: test-matrix
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runs-on }}
     strategy:
       fail-fast: false
       matrix:
@@ -159,10 +165,12 @@ jobs:
       - uses: ./.github/actions/set-up-go
       - id: setup-git-public
         name: Setup Git configuration (public)
+        shell: bash
         run: |
           git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN}}@github.com".insteadOf https://github.com
       - id: build
         if: inputs.binary-tests && matrix.id == inputs.total-runners
+        shell: bash
         run: time make ci-bootstrap dev
       - uses: ./.github/actions/set-up-gotestsum
       - id: run-go-tests
@@ -170,6 +178,7 @@ jobs:
         timeout-minutes: ${{ fromJSON(env.TIMEOUT_IN_MINUTES) }}
         env:
           COMMIT_SHA: ${{ github.sha }}
+        shell: bash
         run: |
           set -exo pipefail
 
@@ -269,6 +278,7 @@ jobs:
       - name: Prepare failure summary
         if: success() || failure()
         continue-on-error: true
+        shell: bash
         run: |
           # This jq query filters out successful tests, leaving only the failures.
           # Then, it formats the results into rows of a Markdown table.
@@ -289,7 +299,7 @@ jobs:
   test-collect-reports:
     if: ${{ ! cancelled() }}
     needs: test-go
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runs-on }}
     steps:
       - uses: actions/cache@ab5e6d0c87105b4c9c2047343972218f562e4319 # v4.0.1
         with:
@@ -301,7 +311,8 @@ jobs:
           path: test-results/go-test
           pattern: test-results-*
           merge-multiple: true
-      - run: |
+      - shell: bash
+        run: |
           ls -lhR test-results/go-test
           find test-results/go-test -type f -mindepth 1 -mtime +3 -delete
           ls -lhR test-results/go-test

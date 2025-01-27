@@ -1,0 +1,98 @@
+name: CI Weekly
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 1'
+
+concurrency:
+  group: ${{ github.head_ref || github.run_id }}-ci
+  cancel-in-progress: true
+
+jobs:
+  setup:
+    name: Setup
+    runs-on: ubuntu-latest
+    outputs:
+      go-tags: ""
+      checkout-ref: ${{ steps.checkout-ref-output.outputs.checkout-ref }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - name: Ensure Go modules are cached
+        uses: ./.github/actions/set-up-go
+        with:
+          no-restore: true # don't download them on a cache hit
+      # control checking out head instead of default ref by a GH label
+      # if checkout-head label is added to a PR, checkout HEAD otherwise checkout ref
+      - if: ${{ !contains(github.event.pull_request.labels.*.name, 'checkout-head') }}
+        shell: bash
+        run: echo "CHECKOUT_REF=${{ github.ref }}" >> "$GITHUB_ENV"
+      - if: ${{ contains(github.event.pull_request.labels.*.name, 'checkout-head') }}
+        shell: bash
+        run: echo "CHECKOUT_REF=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_ENV"
+      - id: checkout-ref-output
+        shell: bash
+        run: echo "checkout-ref=${{ env.CHECKOUT_REF }}" >> "$GITHUB_OUTPUT"
+
+  mac-test-go:
+    name: Run Mac Go tests
+    needs:
+      - setup
+    uses: ./.github/workflows/test-go.yml
+    with:
+      # The regular Go tests use an extra runner to execute the
+      # binary-dependent tests. We isolate them there so that the
+      # other tests aren't slowed down waiting for a binary build.
+      binary-tests: true
+      total-runners: 16
+      go-arch: amd64
+      go-tags: "${{ needs.setup.outputs.go-tags }},deadlock"
+      runs-on: macos-latest
+      checkout-ref: ${{ needs.setup.outputs.checkout-ref }}
+      name: "mac"
+    secrets: inherit
+
+  mac-test-go-testonly:
+    name: Run Mac Go tests tagged with testonly
+    needs:
+      - setup
+    uses: ./.github/workflows/test-go.yml
+    with:
+      testonly: true
+      total-runners: 2 # test runners cannot be less than 2
+      go-arch: amd64
+      go-tags: "${{ needs.setup.outputs.go-tags }},deadlock,testonly"
+      runs-on: macos-latest
+      name: "testonly-mac"
+    secrets: inherit
+
+  mac-test-go-race:
+    name: Run Mac Go tests with data race detection
+    needs:
+      - setup
+    uses: ./.github/workflows/test-go.yml
+    with:
+      total-runners: 16
+      env-vars: |
+        {
+          "VAULT_CI_GO_TEST_RACE": 1
+        }
+      extra-flags: "-race"
+      go-arch: amd64
+      go-tags: ${{ needs.setup.outputs.go-tags }}
+      runs-on: macos-latest
+      name: "race-mac"
+      checkout-ref: ${{ needs.setup.outputs.checkout-ref }}
+    secrets: inherit
+
+  tests-completed:
+    needs:
+      - setup
+      - mac-test-go
+      - mac-test-go-testonly
+      - mac-test-go-race
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - shell: bash
+        run: |
+          tr -d '\n' <<< '${{ toJSON(needs.*.result) }}' | grep -q -v -E '(failure|cancelled)'
