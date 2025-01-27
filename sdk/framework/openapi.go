@@ -340,8 +340,14 @@ func documentPath(p *Path, specialPaths *logical.Paths, requestResponsePrefix st
 				requestResponsePrefix,
 			)
 
-			op.Summary = props.Summary
-			op.Description = props.Description
+			op.Summary = cleanString(props.Summary)
+			if len(op.Summary) == 0 {
+				op.Summary = cleanString(p.HelpSynopsis)
+			}
+			op.Description = cleanString(props.Description)
+			if len(op.Description) == 0 {
+				op.Description = cleanString(p.HelpDescription)
+			}
 			op.Deprecated = props.Deprecated
 			op.OperationID = operationID
 
