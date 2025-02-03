@@ -389,16 +389,32 @@ func (b *backend) pathLoginUpdate(ctx context.Context, req *logical.Request, dat
 
 // Invoked when the token issued by this backend is attempting a renewal.
 func (b *backend) pathLoginRenew(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	roleName := req.Auth.InternalData["role_name"].(string)
-	if roleName == "" {
+	// Fetch the role_name from internal data
+	roleName, ok := req.Auth.InternalData["role_name"].(string)
+	if !ok || roleName == "" {
 		return nil, fmt.Errorf("failed to fetch role_name during renewal")
 	}
 
-	lock := b.roleLock(roleName)
-	lock.RLock()
-	defer lock.RUnlock()
+	// Save the original storage for restoration later
+	originalStorage := req.Storage
 
-	// Ensure that the Role still exists.
+	var txn logical.Transaction
+
+	// Begin a transaction if transactional storage is available.
+	//
+	// b.roleEntry may upgrade storage entries, so we wish to ensure
+	// the read and any subsequent are consistent. 
+	if txnStorage, ok := req.Storage.(logical.TransactionalStorage); ok {
+		var err error
+		txn, err = txnStorage.BeginTx(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to begin transaction: %w", err)
+		}
+		defer txn.Rollback(ctx) // Ensure rollback if anything goes wrong
+		req.Storage = txn
+	}
+
+	// Fetch the role entry from storage
 	role, err := b.roleEntry(ctx, req.Storage, roleName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to validate role %q during renewal: %w", roleName, err)
@@ -407,10 +423,22 @@ func (b *backend) pathLoginRenew(ctx context.Context, req *logical.Request, data
 		return nil, fmt.Errorf("role %q does not exist during renewal", roleName)
 	}
 
+	// Prepare the response with updated TTL values
 	resp := &logical.Response{Auth: req.Auth}
 	resp.Auth.TTL = role.TokenTTL
 	resp.Auth.MaxTTL = role.TokenMaxTTL
 	resp.Auth.Period = role.TokenPeriod
+
+	// Commit the transaction if it was started
+	if txn != nil {
+		if err := txn.Commit(ctx); err != nil {
+			return nil, fmt.Errorf("failed to commit transaction during renewal: %w", err)
+		}
+	}
+
+	// Restore the original storage
+	req.Storage = originalStorage
+
 	return resp, nil
 }
 
