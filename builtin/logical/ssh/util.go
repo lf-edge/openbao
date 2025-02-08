@@ -258,14 +258,24 @@ func getIssuerName(sc *storageContext, data *framework.FieldData) (string, error
 
 // handleStorageContextErr is a small helper function to automatically return
 // internal failed operations as errors, 500 status codes, and users errors
-// as responses, with 400 status code.
-func handleStorageContextErr(err error) (*logical.Response, error) {
-	switch err.(type) {
+// as responses, with 400 status code. It can optionally include an additional
+// message log as a prefix to the error message while preserving the original error type.
+func handleStorageContextErr(err error, additionalMessageLog ...string) (*logical.Response, error) {
+	if err == nil {
+		return nil, nil
+	}
+
+	var prefix string
+	if len(additionalMessageLog) > 0 && additionalMessageLog[0] != "" {
+		prefix = additionalMessageLog[0] + ": "
+	}
+
+	switch typedErr := err.(type) {
 	case errutil.UserError:
-		return logical.ErrorResponse(err.Error()), nil
+		return logical.ErrorResponse(prefix + typedErr.Error()), nil
 	case errutil.InternalError:
-		return nil, err
+		return nil, errutil.InternalError{Err: prefix + typedErr.Error()}
 	default:
-		return nil, err
+		return nil, fmt.Errorf("%s%w", prefix, typedErr)
 	}
 }
