@@ -289,7 +289,6 @@ func (b *backend) pathReadIssuerHandler(ctx context.Context, req *logical.Reques
 		return handleStorageContextErr(err)
 	}
 
-	// NOTE (gabrielopesantos): Do we want to return whether the issuer is the default one?
 	return respondReadIssuer(entry)
 }
 
