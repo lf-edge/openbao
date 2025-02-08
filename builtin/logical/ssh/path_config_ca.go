@@ -81,7 +81,6 @@ func pathConfigCA(b *backend) *framework.Path {
 					OperationVerb:   "purge",
 				},
 				Responses: map[int][]framework.Response{
-					// NOTE (gabrielopesantos): The response isn't really a 204, but a 200 with an empty body
 					http.StatusNoContent: {{
 						Description: "No Content",
 					}},
@@ -166,7 +165,6 @@ func (b *backend) pathConfigCADelete(ctx context.Context, req *logical.Request, 
 		}
 	}
 
-	// With this, the response isn't empty
 	response := &logical.Response{}
 
 	if issuersDeleted > 0 {
