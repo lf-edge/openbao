@@ -25,7 +25,6 @@ const (
 	caPrivateKeyStoragePath           = "config/ca_private_key"
 	caPrivateKeyStoragePathDeprecated = "config/ca_bundle"
 
-	// NOTE (gabrielopesantos): These might be to high for SSH issuers
 	maxRolesToScanOnIssuerChange = 100
 	maxRolesToFindOnIssuerChange = 10
 
