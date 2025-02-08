@@ -54,23 +54,7 @@ func pathConfigCA(b *backend) *framework.Path {
 				Responses: map[int][]framework.Response{
 					http.StatusOK: {{
 						Description: "OK",
-						Fields: map[string]*framework.FieldSchema{
-							"issuer_id": {
-								Type:        framework.TypeString,
-								Description: `Issuer Id`,
-								Required:    false,
-							},
-							"issuer_name": {
-								Type:        framework.TypeString,
-								Description: `Issuer Name`,
-								Required:    false,
-							},
-							"public_key": {
-								Type:        framework.TypeBool,
-								Description: `Issuer public key`,
-								Required:    false,
-							},
-						},
+						Fields:      issuerOKResponseFields,
 					}},
 				},
 			},
@@ -93,26 +77,9 @@ func pathConfigCA(b *backend) *framework.Path {
 					OperationSuffix: "default-ca",
 				},
 				Responses: map[int][]framework.Response{
-					// NOTE (gabrielopesantos): duplicated
 					http.StatusOK: {{
 						Description: "OK",
-						Fields: map[string]*framework.FieldSchema{
-							"issuer_id": {
-								Type:        framework.TypeString,
-								Description: `Issuer Id`,
-								Required:    false,
-							},
-							"issuer_name": {
-								Type:        framework.TypeString,
-								Description: `Issuer Name`,
-								Required:    false,
-							},
-							"public_key": {
-								Type:        framework.TypeBool,
-								Description: `Issuer public key`,
-								Required:    false,
-							},
-						},
+						Fields:      issuerOKResponseFields,
 					}},
 				},
 			},

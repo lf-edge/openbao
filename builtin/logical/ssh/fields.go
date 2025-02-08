@@ -2,6 +2,24 @@ package ssh
 
 import "github.com/openbao/openbao/sdk/v2/framework"
 
+var issuerOKResponseFields = map[string]*framework.FieldSchema{
+	"issuer_id": {
+		Type:        framework.TypeString,
+		Description: `Issuer Id`,
+		Required:    false,
+	},
+	"issuer_name": {
+		Type:        framework.TypeString,
+		Description: `Issuer Name`,
+		Required:    false,
+	},
+	"public_key": {
+		Type:        framework.TypeBool,
+		Description: `Issuer public key`,
+		Required:    false,
+	},
+}
+
 func addSubmitIssuerCommonFields(fields map[string]*framework.FieldSchema) map[string]*framework.FieldSchema {
 	fields["issuer_name"] = &framework.FieldSchema{
 		Type:        framework.TypeString,
