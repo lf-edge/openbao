@@ -8,21 +8,13 @@ import (
 )
 
 func TestSSH_ConfigIssuers(t *testing.T) {
-	// create backend config
-	config := logical.TestBackendConfig()
-	// NOTE (gabrielopesantos): Is this part needed?
-	config.StorageView = &logical.InmemStorage{}
-
-	b, err := Factory(context.Background(), config)
-	if err != nil {
-		t.Fatalf("Cannot create backend: %s", err)
-	}
+	b, s := CreateBackendWithStorage(t)
 
 	// reading the 'default' configured issuer when no default has been set should return a 200 with an empty 'default' issuer
 	resp, err := b.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.ReadOperation,
 		Path:      "config/issuers",
-		Storage:   config.StorageView,
+		Storage:   s,
 	})
 
 	if err != nil || (resp != nil && resp.IsError()) {
@@ -38,7 +30,7 @@ func TestSSH_ConfigIssuers(t *testing.T) {
 	resp, err = b.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.UpdateOperation,
 		Path:      "config/ca",
-		Storage:   config.StorageView,
+		Storage:   s,
 		Data: map[string]interface{}{
 			"generate_signing_key": true,
 		},
@@ -54,7 +46,7 @@ func TestSSH_ConfigIssuers(t *testing.T) {
 	resp, err = b.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.ReadOperation,
 		Path:      "config/issuers",
-		Storage:   config.StorageView,
+		Storage:   s,
 	})
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("cannot read default issuer: err: %v, resp: %v", err, resp)
@@ -70,7 +62,7 @@ func TestSSH_ConfigIssuers(t *testing.T) {
 	resp, err = b.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.UpdateOperation,
 		Path:      "issuers/import/" + issuerName,
-		Storage:   config.StorageView,
+		Storage:   s,
 	})
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("cannot submit new issuer: err: %v, resp: %v", err, resp)
@@ -86,7 +78,7 @@ func TestSSH_ConfigIssuers(t *testing.T) {
 		Data: map[string]interface{}{
 			"default": issuerName,
 		},
-		Storage: config.StorageView,
+		Storage: s,
 	})
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("cannot set 'test-issuer' as default: err: %v, resp: %v", err, resp)
@@ -96,7 +88,7 @@ func TestSSH_ConfigIssuers(t *testing.T) {
 	resp, err = b.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.ReadOperation,
 		Path:      "config/issuers",
-		Storage:   config.StorageView,
+		Storage:   s,
 	})
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("cannot read default issuer: err: %v, resp: %v", err, resp)
