@@ -64,6 +64,10 @@ func (b *backend) pathReadDefaultIssuerHandler(ctx context.Context, req *logical
 		return handleStorageContextErr(err, "Error loading issuers configuration")
 	}
 
+	if len(config.DefaultIssuerID) == 0 {
+		return logical.ErrorResponse("No default issuer currently configured"), nil
+	}
+
 	return &logical.Response{
 		Data: map[string]interface{}{
 			defaultRef: config.DefaultIssuerID,
