@@ -10,20 +10,15 @@ import (
 func TestSSH_ConfigIssuers(t *testing.T) {
 	b, s := CreateBackendWithStorage(t)
 
-	// reading the 'default' configured issuer when no default has been set should return a 200 with an empty 'default' issuer
+	// reading the 'default' configured issuer when no default has been configured should return a 400 error
 	resp, err := b.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.ReadOperation,
 		Path:      "config/issuers",
 		Storage:   s,
 	})
 
-	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("cannot fetch 'default' issuer: err: %v, resp: %v", err, resp)
-	}
-
-	// check if the 'default' keyword exists and the value is an empty string
-	if resp.Data["default"] != "" {
-		t.Fatalf("expected an empty string but got '%v'", resp.Data["default"])
+	if err != nil || (resp != nil && !resp.IsError()) {
+		t.Fatalf("should have failed to fetch issuers config has no issuer has be set as default: err: %v, resp: %v", err, resp)
 	}
 
 	// submit a 'default' issuer with 'config/ca' endpoint
