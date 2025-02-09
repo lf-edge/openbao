@@ -335,6 +335,10 @@ func (b *backend) pathDeleteIssuerHandler(ctx context.Context, req *logical.Requ
 		addWarningOnDereferencing(sc, defaultRef, response)
 	}
 
+	if len(response.Warnings) == 0 {
+		return nil, nil
+	}
+
 	return response, nil
 }
 
