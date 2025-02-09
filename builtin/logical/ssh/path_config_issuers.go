@@ -2,6 +2,7 @@ package ssh
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/openbao/openbao/sdk/v2/framework"
@@ -109,6 +110,8 @@ func (b *backend) pathWriteDefaultIssuerHandler(ctx context.Context, req *logica
 	if err != nil {
 		return handleStorageContextErr(err, "Unable to fetch existing issuers configuration")
 	}
+
+	oldDefault := config.DefaultIssuerID
 	config.DefaultIssuerID = parsedIssuer
 
 	if err := sc.setIssuersConfig(config); err != nil {
@@ -122,11 +125,19 @@ func (b *backend) pathWriteDefaultIssuerHandler(ctx context.Context, req *logica
 		}
 	}
 
-	return &logical.Response{
+	response := &logical.Response{
 		Data: map[string]interface{}{
 			defaultRef: config.DefaultIssuerID,
 		},
-	}, nil
+	}
+	if len(oldDefault) != 0 {
+		warningMessage := fmt.Sprintf("Previous default (%s) has been updated with the issuer '%s'", oldDefault, newDefault)
+		if parsedIssuer != newDefault {
+			warningMessage += fmt.Sprintf(" (resolved to %s)", parsedIssuer)
+		}
+		response.AddWarning(warningMessage)
+	}
+	return response, nil
 }
 
 const (
