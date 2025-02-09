@@ -74,10 +74,10 @@ func Backend(conf *logical.BackendConfig) (*backend, error) {
 			pathIssue(&b),
 			pathFetchPublicKey(&b),
 			pathCleanupKeys(&b),
-			pathConfigIssuers(&b),
 			// Issuer APIs
-			pathIssuers(&b),
+			pathConfigIssuers(&b),
 			pathSubmitIssuer(&b),
+			pathIssuers(&b),
 			pathListIssuers(&b),
 			pathGetIssuerPublicKeyUnauthenticated(&b),
 		},

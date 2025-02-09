@@ -129,8 +129,8 @@ func pathSubmitIssuer(b *backend) *framework.Path {
 			},
 		},
 
-		HelpSynopsis:    "",
-		HelpDescription: "",
+		HelpSynopsis:    pathSubmitIssuerSyn,
+		HelpDescription: pathSubmitIssuerDesc,
 	}
 }
 
@@ -541,5 +541,12 @@ dereference it as the default issuer.
 `
 	pathGetIssuerUnauthenticatedDesc = `
 This endpoint allows fetching the public key of an issuer without authentication.
+`
+
+	pathSubmitIssuerSyn  = `Submit a new issuer with an optional explicit name.`
+	pathSubmitIssuerDesc = `
+This endpoint allows submitting a new issuer with an optional explicit name. If the
+name is not provided, the issuer will be created with an empty name. The issuer will
+be set as the default issuer if the 'set_default' field is set to true.
 `
 )
