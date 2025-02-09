@@ -235,7 +235,7 @@ func (b *backend) pathConfigCAUpdate(ctx context.Context, req *logical.Request, 
 
 	err = sc.writeIssuer(issuer)
 	if err != nil {
-		return nil, fmt.Errorf("failed to persist the issuer: %w", err)
+		return handleStorageContextErr(err, "failed to persist the issuer")
 	}
 
 	response, err := respondReadIssuer(issuer)

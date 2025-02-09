@@ -62,8 +62,8 @@ func pathIssuers(b *backend) *framework.Path {
 					OperationVerb: "delete",
 				},
 				Responses: map[int][]framework.Response{
-					http.StatusNoContent: {{
-						Description: "No Content",
+					http.StatusOK: {{
+						Description: "OK",
 					}},
 				},
 			},
@@ -105,23 +105,7 @@ func pathSubmitIssuer(b *backend) *framework.Path {
 					http.StatusOK: {
 						{
 							Description: "OK",
-							Fields: map[string]*framework.FieldSchema{
-								"issuer_id": {
-									Type:        framework.TypeString,
-									Description: "Issuer Id",
-									Required:    false,
-								},
-								"issuer_name": {
-									Type:        framework.TypeString,
-									Description: "Issuer name",
-									Required:    false,
-								},
-								"public_key": {
-									Type:        framework.TypeString,
-									Description: "Issuer public key",
-									Required:    false,
-								},
-							},
+							Fields:      issuerOKResponseFields,
 						},
 					},
 				},
@@ -208,23 +192,6 @@ func pathGetIssuerPublicKeyUnauthenticated(b *backend) *framework.Path {
 					http.StatusOK: {
 						{
 							Description: "OK",
-							Fields: map[string]*framework.FieldSchema{
-								"issuer_id": {
-									Type:        framework.TypeString,
-									Description: "Issuer Id",
-									Required:    false,
-								},
-								"issuer_name": {
-									Type:        framework.TypeString,
-									Description: "Issuer name",
-									Required:    false,
-								},
-								"public_key": {
-									Type:        framework.TypeString,
-									Description: "Issuer public key",
-									Required:    false,
-								},
-							},
 						},
 					},
 				},
@@ -414,7 +381,7 @@ func (b *backend) pathWriteIssuerHandler(ctx context.Context, req *logical.Reque
 
 	err = sc.writeIssuer(issuer)
 	if err != nil {
-		return nil, fmt.Errorf("failed to persist the issuer: %w", err)
+		return handleStorageContextErr(err, "failed to persist the issuer")
 	}
 
 	response, err := respondReadIssuer(issuer)

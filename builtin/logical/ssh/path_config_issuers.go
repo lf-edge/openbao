@@ -98,7 +98,7 @@ func (b *backend) pathWriteDefaultIssuerHandler(ctx context.Context, req *logica
 	// Validate the new default reference.
 	newDefault := getDefaultRef(d)
 	if len(newDefault) == 0 || newDefault == defaultRef {
-		return logical.ErrorResponse("Invalid issuer specification; must be non-empty and can't be 'default'."), nil
+		return logical.ErrorResponse("invalid issuer specification; must be non-empty and can't be 'default'."), nil
 	}
 	parsedIssuer, err := sc.resolveIssuerReference(newDefault)
 	if err != nil {
