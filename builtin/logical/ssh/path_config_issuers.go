@@ -62,11 +62,11 @@ func (b *backend) pathReadDefaultIssuerHandler(ctx context.Context, req *logical
 	sc := b.makeStorageContext(ctx, req.Storage)
 	config, err := sc.getIssuersConfig()
 	if err != nil {
-		return handleStorageContextErr(err, "Error loading issuers configuration")
+		return handleStorageContextErr(err, "error loading issuers configuration")
 	}
 
 	if len(config.DefaultIssuerID) == 0 {
-		return logical.ErrorResponse("No default issuer currently configured"), nil
+		return logical.ErrorResponse("no default issuer currently configured"), nil
 	}
 
 	return &logical.Response{
@@ -102,20 +102,20 @@ func (b *backend) pathWriteDefaultIssuerHandler(ctx context.Context, req *logica
 	}
 	parsedIssuer, err := sc.resolveIssuerReference(newDefault)
 	if err != nil {
-		return handleStorageContextErr(err, "Error resolving issuer reference")
+		return handleStorageContextErr(err, "error resolving issuer reference")
 	}
 
 	// Update the config
 	config, err := sc.getIssuersConfig()
 	if err != nil {
-		return handleStorageContextErr(err, "Unable to fetch existing issuers configuration")
+		return handleStorageContextErr(err, "unable to fetch existing issuers configuration")
 	}
 
 	oldDefault := config.DefaultIssuerID
 	config.DefaultIssuerID = parsedIssuer
 
 	if err := sc.setIssuersConfig(config); err != nil {
-		return handleStorageContextErr(err, "Error updating issuer configuration")
+		return handleStorageContextErr(err, "error updating issuer configuration")
 	}
 
 	// Commit our transaction if we created one!

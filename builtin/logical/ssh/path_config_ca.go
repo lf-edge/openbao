@@ -65,8 +65,8 @@ func pathConfigCA(b *backend) *framework.Path {
 					OperationVerb:   "purge",
 				},
 				Responses: map[int][]framework.Response{
-					http.StatusNoContent: {{
-						Description: "No Content",
+					http.StatusOK: {{
+						Description: "OK",
 					}},
 				},
 			},
@@ -122,7 +122,7 @@ func (b *backend) pathConfigCADelete(ctx context.Context, req *logical.Request, 
 
 	issuersDeleted, err := sc.purgeIssuers()
 	if err != nil {
-		return nil, fmt.Errorf("failed to delete issuers: %w", err)
+		return handleStorageContextErr(err, "failed to delete issuers")
 	}
 
 	// Commit our transaction if we created one!
