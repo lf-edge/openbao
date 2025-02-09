@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/go-uuid"
 	"github.com/openbao/openbao/sdk/v2/framework"
-	"github.com/openbao/openbao/sdk/v2/helper/errutil"
 	"github.com/openbao/openbao/sdk/v2/logical"
 )
 
@@ -380,12 +379,7 @@ func (b *backend) pathWriteIssuerHandler(ctx context.Context, req *logical.Reque
 
 	publicKey, privateKey, err := b.keys(d)
 	if err != nil {
-		switch err.(type) {
-		case errutil.InternalError:
-			return nil, err
-		default:
-			return logical.ErrorResponse(err.Error()), nil
-		}
+		return handleStorageContextErr(err)
 	}
 
 	// Use the transaction storage if there's one.
