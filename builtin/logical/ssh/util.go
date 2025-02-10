@@ -163,29 +163,29 @@ func (b *backend) keys(data *framework.FieldData) (string, string, error) {
 	// explicitly set true
 	case ok && generateSigningKeyRaw.(bool):
 		if publicKey != "" || privateKey != "" {
-			return "", "", errors.New("public_key and private_key must not be set when generate_signing_key is set to true")
+			return "", "", errutil.UserError{Err: "public_key and private_key must not be set when generate_signing_key is set to true"}
 		}
 
 		generateSigningKey = true
 
 	// explicitly set to false, or not set and we have both a public and private key
-	case ok, publicKey != "" && privateKey != "":
+	case publicKey != "" && privateKey != "":
 		if publicKey == "" {
-			return "", "", errors.New("missing public_key")
+			return "", "", errutil.UserError{Err: "missing public_key"}
 		}
 
 		if privateKey == "" {
-			return "", "", errors.New("missing private_key")
-		}
-
-		_, err := ssh.ParsePrivateKey([]byte(privateKey))
-		if err != nil {
-			return "", "", fmt.Errorf("Unable to parse private_key as an SSH private key: %v", err)
+			return "", "", errutil.UserError{Err: "missing private_key"}
 		}
 
 		_, err = parsePublicSSHKey(publicKey)
 		if err != nil {
-			return "", "", fmt.Errorf("Unable to parse public_key as an SSH public key: %w", err)
+			return "", "", errutil.UserError{Err: fmt.Sprintf("could not parse public_key provided value: %v", err)}
+		}
+
+		_, err := ssh.ParsePrivateKey([]byte(privateKey))
+		if err != nil {
+			return "", "", errutil.UserError{Err: fmt.Sprintf("could not parse private_key provided value: %v", err)}
 		}
 
 	// not set and no public/private key provided so generate
@@ -194,7 +194,7 @@ func (b *backend) keys(data *framework.FieldData) (string, string, error) {
 
 	// not set, but one or the other supplied
 	default:
-		return "", "", errors.New("only one of public_key and private_key set; both must be set to use, or both must be blank to auto-generate")
+		return "", "", errutil.UserError{Err: fmt.Sprintf("only one of public_key and private_key set; both must be set to use, or both must be blank to auto-generate")}
 	}
 
 	if generateSigningKey {
