@@ -1,3 +1,6 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
 ---
 description: |-
   Download a precompiled binary, compile from source, or use a package.
@@ -37,11 +40,36 @@ $ pkg install openbao
 
 :::info
 
-
-OpenBao does not yet have a package repository. For now you need to download and
-install packages manually.
+OpenBao maintains package repositories for RPM and Debian; Arch Linux packages
+are available on the release but are not maintained in a repository. Not all
+architectures supported by our releases are distributed via GH Pages to save
+space. Old versions may be trimmed in the future.
 
 :::
+
+<Tabs>
+    <TabItem value="rpm" label="RPM" default>
+        To enable the repository, add an entry to `/etc/yum.repos.d/openbao.repo`:
+
+```ini
+[openbao]
+name=OpenBao Official - AMD64
+baseurl=https://openbao.org/repos/linux/rpm/amd64/
+enabled=1
+gpgcheck=1
+gpgkey=https://openbao.org/assets/openbao-gpg-pub-20240618.asc
+```
+    </TabItem>
+    <TabItem value="deb" label="Debian">
+        To enable the repository, add an entry to `/etc/apt/sources.list` or `/etc/apt/sources.list.d/openbao.sources`:
+
+```ini
+deb [signed-by=/etc/apt/keyrings/openbao-gpg-pub-20240618.asc] https://openbao.org/repos/linux/deb stable main
+```
+
+download our [GPG key](pathname:///assets/openbao-gpg-pub-20240618.asc) to `/etc/apt/keyrings/openbao-gpg-pub-20240618.asc`.
+    </TabItem>
+</Tabs>
 
 OpenBao manages packages for Ubuntu, Debian, Fedora, RHEL, Amazon Linux, and
 other distributions. [Download](/downloads) the appropriate package for your

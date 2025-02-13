@@ -39,6 +39,22 @@ jobs:
         working-directory: ./website
         run: |
           make build
+      - id: cache-repos
+        name: cache-repos
+        uses: actions/cache@ab5e6d0c87105b4c9c2047343972218f562e4319 # v4.0.1
+        with:
+          path: website/build/repos
+          key: docs-cache-repo-build
+      - id: gpg-import
+        name: GPG Import
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSWORD }}
+      - id: build-repos
+        name: build-repos
+        run: |
+          ./scripts/genrepos.sh
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
