@@ -159,6 +159,34 @@ Usage: bao operator raft remove-peer <server_id>
   Once a node is removed, its Raft data needs to be deleted before it may be joined back into an existing cluster. This requires shutting down the OpenBao process, deleting the data, then restarting the OpenBao process on the removed node.
 :::
 
+## promote
+
+This command is used to promote a permanent [non-voter](#parameters) to a voter in the Raft cluster.
+
+```text
+Usage: bao operator raft promote <server_id>
+
+  Promotes a permanent non-voter to a voter.
+
+	  $ bao operator raft promote node1
+```
+
+## demote
+
+This command is used to demote a voter to a permanent [non-voter](#parameters) in the Raft cluster.
+
+```text
+Usage: bao operator raft demote <server_id>
+
+  Demotes voter to a permanent non-voter.
+
+	  $ bao operator raft demote node1
+```
+
+
+:::note
+  Demoting the current leader to a non-voter will not trigger a leader election. The node will become a non-voter after the leadership has changed.
+:::
 ## snapshot
 
 This command groups subcommands for operators interacting with the snapshot

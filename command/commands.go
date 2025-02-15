@@ -404,6 +404,16 @@ func initCommands(ui, serverCmdUi cli.Ui, runOpts *RunOptions) map[string]cli.Co
 				BaseCommand: getBaseCommand(),
 			}, nil
 		},
+		"operator raft promote": func() (cli.Command, error) {
+			return &OperatorRaftPromoteCommand{
+				BaseCommand: getBaseCommand(),
+			}, nil
+		},
+		"operator raft demote": func() (cli.Command, error) {
+			return &OperatorRaftDemoteCommand{
+				BaseCommand: getBaseCommand(),
+			}, nil
+		},
 		"operator raft snapshot": func() (cli.Command, error) {
 			return &OperatorRaftSnapshotCommand{
 				BaseCommand: getBaseCommand(),

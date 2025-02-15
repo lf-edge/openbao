@@ -103,6 +103,44 @@ func (b *SystemBackend) raftStoragePaths() []*framework.Path {
 			HelpDescription: strings.TrimSpace(sysRaftHelp["raft-remove-peer"][1]),
 		},
 		{
+			Pattern: "storage/raft/promote",
+
+			Fields: map[string]*framework.FieldSchema{
+				"server_id": {
+					Type: framework.TypeString,
+				},
+			},
+
+			Operations: map[logical.Operation]framework.OperationHandler{
+				logical.UpdateOperation: &framework.PathOperation{
+					Callback: b.handleRaftPromoteUpdate(),
+					Summary:  "Promotes a permanent non-voter to a voter.",
+				},
+			},
+
+			HelpSynopsis:    strings.TrimSpace(sysRaftHelp["raft-promote"][0]),
+			HelpDescription: strings.TrimSpace(sysRaftHelp["raft-promote"][1]),
+		},
+		{
+			Pattern: "storage/raft/demote",
+
+			Fields: map[string]*framework.FieldSchema{
+				"server_id": {
+					Type: framework.TypeString,
+				},
+			},
+
+			Operations: map[logical.Operation]framework.OperationHandler{
+				logical.UpdateOperation: &framework.PathOperation{
+					Callback: b.handleRaftDemoteUpdate(),
+					Summary:  "Demotes a voter to a permanent non-voter.",
+				},
+			},
+
+			HelpSynopsis:    strings.TrimSpace(sysRaftHelp["raft-demote"][0]),
+			HelpDescription: strings.TrimSpace(sysRaftHelp["raft-demote"][1]),
+		},
+		{
 			Pattern: "storage/raft/configuration",
 
 			Operations: map[logical.Operation]framework.OperationHandler{
@@ -241,6 +279,46 @@ func (b *SystemBackend) handleRaftRemovePeerUpdate() framework.OperationFunc {
 		}
 
 		b.Core.raftFollowerStates.Delete(serverID)
+
+		return nil, nil
+	}
+}
+
+func (b *SystemBackend) handleRaftPromoteUpdate() framework.OperationFunc {
+	return func(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+		serverID := d.Get("server_id").(string)
+		if len(serverID) == 0 {
+			return logical.ErrorResponse("no server id provided"), logical.ErrInvalidRequest
+		}
+
+		raftBackend := b.Core.getRaftBackend()
+		if raftBackend == nil {
+			return logical.ErrorResponse("raft storage is not in use"), logical.ErrInvalidRequest
+		}
+
+		if err := raftBackend.PromotePeer(ctx, serverID); err != nil {
+			return nil, err
+		}
+
+		return nil, nil
+	}
+}
+
+func (b *SystemBackend) handleRaftDemoteUpdate() framework.OperationFunc {
+	return func(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+		serverID := d.Get("server_id").(string)
+		if len(serverID) == 0 {
+			return logical.ErrorResponse("no server id provided"), logical.ErrInvalidRequest
+		}
+
+		raftBackend := b.Core.getRaftBackend()
+		if raftBackend == nil {
+			return logical.ErrorResponse("raft storage is not in use"), logical.ErrInvalidRequest
+		}
+
+		if err := raftBackend.DemotePeer(ctx, serverID); err != nil {
+			return nil, err
+		}
 
 		return nil, nil
 	}
@@ -687,6 +765,14 @@ var sysRaftHelp = map[string][2]string{
 	},
 	"raft-remove-peer": {
 		"Removes a peer from the raft cluster.",
+		"",
+	},
+	"raft-promote": {
+		"Promotes a permanent non-voter to a voter",
+		"",
+	},
+	"raft-demote": {
+		"Demotes a voter to a permanent non-voter",
 		"",
 	},
 	"raft-snapshot": {

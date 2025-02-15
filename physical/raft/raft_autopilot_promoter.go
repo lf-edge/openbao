@@ -43,9 +43,14 @@ func (_ *CustomPromoter) CalculatePromotionsAndDemotions(c *autopilot.Config, s 
 	minStableDuration := s.ServerStabilizationTime(c)
 	nonVoters := c.Ext.(map[raft.ServerID]bool)
 	for id, server := range s.Servers {
-		// Ignore non-voters
 		if _, ok := nonVoters[id]; ok {
-			continue
+			// If the server is marked as a non-voter, demote it
+			if server.State == autopilot.RaftVoter {
+				changes.Demotions = append(changes.Demotions, id)
+			} else {
+				// If the server is already a non-voter, skip it
+				continue
+			}
 		}
 		// If the server is healthy and stable, promote it to a voter
 		if server.State == autopilot.RaftNonVoter && server.Health.IsStable(now, minStableDuration) {

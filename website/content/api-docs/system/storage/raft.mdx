@@ -164,6 +164,60 @@ $ curl \
     http://127.0.0.1:8200/v1/sys/storage/raft/remove-peer
 ```
 
+## Promote a node in the raft cluster
+
+This endpoint promotes a permanent [non-voter](/docs/commands/operator/raft#parameters) to voter in the raft cluster. An optional `dr_operation_token`
+may be provided if the node is in a DR secondary cluster.
+
+| Method | Path                        |
+|:-------|:----------------------------|
+| `POST` | `/sys/storage/raft/promote` |
+
+### Sample payload
+
+```json
+{
+  "server_id": "raft1",
+}
+```
+
+### Sample request
+
+```shell-session
+$ curl \
+    --header "X-Vault-Token: ..." \
+    --request POST \
+    --data @payload.json \
+    http://127.0.0.1:8200/v1/sys/storage/raft/promote
+```
+
+## Demote a node in the raft cluster
+
+This endpoint demotes a voter to a permanent [non-voter](/docs/commands/operator/raft#parameters) in the raft cluster. An optional `dr_operation_token`
+may be provided if the node is in a DR secondary cluster.
+
+| Method | Path                       |
+|:-------|:---------------------------|
+| `POST` | `/sys/storage/raft/demote` |
+
+### Sample payload
+
+```json
+{
+  "server_id": "raft1",
+}
+```
+
+### Sample request
+
+```shell-session
+$ curl \
+    --header "X-Vault-Token: ..." \
+    --request POST \
+    --data @payload.json \
+    http://127.0.0.1:8200/v1/sys/storage/raft/demote
+```
+
 ## Take a snapshot of the raft cluster
 
 This endpoint returns a snapshot of the current state of the raft cluster. The

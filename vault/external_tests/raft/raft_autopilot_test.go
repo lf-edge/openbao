@@ -481,6 +481,84 @@ func TestRaft_NonVotersStayNonVoters(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// TestRaft_PromoteDemote tests that autopilot can promote and demote nodes
+func TestRaft_PromoteDemote(t *testing.T) {
+	cluster, _ := raftCluster(t, &RaftClusterOpts{
+		DisableFollowerJoins: true,
+		InmemCluster:         true,
+		EnableAutopilot:      true,
+		PhysicalFactoryConfig: map[string]interface{}{
+			"performance_multiplier":       "5",
+			"autopilot_reconcile_interval": "300ms",
+			"autopilot_update_interval":    "100ms",
+		},
+		VersionMap: map[int]string{
+			0: version.Version,
+			1: version.Version,
+			2: version.Version,
+			3: version.Version,
+		},
+		NumCores: 4,
+	})
+	defer cluster.Cleanup()
+	testhelpers.WaitForActiveNode(t, cluster)
+
+	client := cluster.Cores[0].Client
+
+	config, err := client.Sys().RaftAutopilotConfiguration()
+	require.NoError(t, err)
+	joinAndStabilizeAndPromote(t, cluster.Cores[1], client, cluster, config, "core-1", 2)
+	joinAndStabilizeAndPromote(t, cluster.Cores[2], client, cluster, config, "core-2", 3)
+
+	errIfNonVotersExist := func() error {
+		t.Helper()
+		resp, err := client.Sys().RaftAutopilotState()
+		if err != nil {
+			t.Fatal(err)
+		}
+		for k, v := range resp.Servers {
+			if v.Status == "non-voter" {
+				return fmt.Errorf("node %q is a non-voter", k)
+			}
+		}
+		return nil
+	}
+
+	errIfVoter := func() error {
+		t.Helper()
+		resp, err := client.Sys().RaftAutopilotState()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if resp.Servers["core-3"].Status == "voter" {
+			return fmt.Errorf("node %q is a voter", "core-3")
+		}
+		return nil
+	}
+	testhelpers.RetryUntil(t, 10*time.Second, errIfNonVotersExist)
+
+	joinAndStabilize(t, cluster.Cores[3], client, cluster, config, "core-3", 4, true)
+
+	// Promote core-3
+	client.Logical().Write("sys/storage/raft/promote", map[string]interface{}{
+		"server_id": "core-3",
+	})
+	testhelpers.RetryUntil(t, 10*time.Second, errIfNonVotersExist)
+
+	// Check that the node is promoted
+	err = errIfNonVotersExist()
+	require.NoError(t, err)
+
+	// Demote core-3
+	client.Logical().Write("sys/storage/raft/demote", map[string]interface{}{
+		"server_id": "core-3",
+	})
+	testhelpers.RetryUntil(t, 10*time.Second, errIfVoter)
+
+	err = errIfVoter()
+	require.NoError(t, err)
+}
+
 // TestRaft_Autopilot_DeadServerCleanup tests that dead servers are correctly
 // removed by Vault and autopilot when a node stops and a replacement node joins.
 // The expected behavior is that removing a node from a 3 node cluster wouldn't
