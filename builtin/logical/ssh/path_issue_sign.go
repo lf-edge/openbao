@@ -4,7 +4,6 @@
 package ssh
 
 import (
-	"context"
 	"crypto/dsa"
 	"crypto/ecdsa"
 	"crypto/ed25519"
@@ -53,9 +52,7 @@ type creationBundle struct {
 	Extensions      map[string]string
 }
 
-func (b *backend) pathSignIssueCertificateHelper(ctx context.Context, req *logical.Request, data *framework.FieldData, role *sshRole, publicKey ssh.PublicKey) (*logical.Response, error) {
-	// Note that these various functions always return "user errors" so we pass
-	// them as 4xx values
+func (b *backend) pathSignIssueCertificateHelper(sc *storageContext, req *logical.Request, data *framework.FieldData, role *sshRole, publicKey ssh.PublicKey) (*logical.Response, error) {
 	keyID, err := b.calculateKeyID(data, req, role, publicKey)
 	if err != nil {
 		return logical.ErrorResponse(err.Error()), nil
@@ -101,15 +98,18 @@ func (b *backend) pathSignIssueCertificateHelper(ctx context.Context, req *logic
 		return logical.ErrorResponse(err.Error()), nil
 	}
 
-	privateKeyEntry, err := caKey(ctx, req.Storage, caPrivateKey)
+	issuerId, err := sc.resolveIssuerReference(role.Issuer)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read CA private key: %w", err)
+		return handleStorageContextErr(err)
 	}
-	if privateKeyEntry == nil || privateKeyEntry.Key == "" {
-		return nil, errors.New("failed to read CA private key")
+	issuer, err := sc.fetchIssuerById(issuerId)
+	if err != nil {
+		return handleStorageContextErr(err)
 	}
 
-	signer, err := ssh.ParsePrivateKey([]byte(privateKeyEntry.Key))
+	privateKey := issuer.PrivateKey
+
+	signer, err := ssh.ParsePrivateKey([]byte(privateKey))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse stored CA private key: %w", err)
 	}

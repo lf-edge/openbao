@@ -25,24 +25,23 @@ func pathFetchPublicKey(b *backend) *framework.Path {
 			},
 		},
 
-		HelpSynopsis:    `Retrieve the public key.`,
-		HelpDescription: `This allows the public key of the SSH CA certificate that this backend has been configured with to be fetched. This is a raw response endpoint without JSON encoding; use -format=raw or an external tool (e.g., curl) to fetch this value.`,
+		HelpSynopsis:    `Retrieve the 'default' issuer's public key.`,
+		HelpDescription: `This endpoints allows fetching the configured default SSH issuer's public key. This is a raw response endpoint without JSON encoding; use -format=raw or an external tool (e.g., curl) to fetch this value.`,
 	}
 }
 
 func (b *backend) pathFetchPublicKey(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	publicKeyEntry, err := caKey(ctx, req.Storage, caPublicKey)
+	sc := b.makeStorageContext(ctx, req.Storage)
+
+	issuer, err := sc.fetchDefaultIssuer()
 	if err != nil {
-		return nil, err
-	}
-	if publicKeyEntry == nil || publicKeyEntry.Key == "" {
-		return nil, nil
+		return handleStorageContextErr(err)
 	}
 
 	response := &logical.Response{
 		Data: map[string]interface{}{
 			logical.HTTPContentType: "text/plain",
-			logical.HTTPRawBody:     []byte(publicKeyEntry.Key),
+			logical.HTTPRawBody:     []byte(issuer.PublicKey),
 			logical.HTTPStatusCode:  200,
 		},
 	}

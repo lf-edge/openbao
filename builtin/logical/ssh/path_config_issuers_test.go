@@ -1,0 +1,95 @@
+package ssh
+
+import (
+	"context"
+	"testing"
+
+	"github.com/openbao/openbao/sdk/v2/logical"
+)
+
+func TestSSH_ConfigIssuers(t *testing.T) {
+	b, s := CreateBackendWithStorage(t)
+
+	// reading the 'default' configured issuer when no default has been configured should return a 400 error
+	resp, err := b.HandleRequest(context.Background(), &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      "config/issuers",
+		Storage:   s,
+	})
+
+	if err != nil || (resp != nil && !resp.IsError()) {
+		t.Fatalf("should have failed to fetch issuers config has no issuer has be set as default: err: %v, resp: %v", err, resp)
+	}
+
+	// submit a 'default' issuer with 'config/ca' endpoint
+	resp, err = b.HandleRequest(context.Background(), &logical.Request{
+		Operation: logical.UpdateOperation,
+		Path:      "config/ca",
+		Storage:   s,
+		Data: map[string]interface{}{
+			"generate_signing_key": true,
+		},
+	})
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("cannot submit CA issuer as default: err: %v, resp: %v", err, resp)
+	}
+
+	// parse 'default' issuer's id
+	defaultIssuerId := resp.Data["issuer_id"]
+
+	// read the 'default' issuer
+	resp, err = b.HandleRequest(context.Background(), &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      "config/issuers",
+		Storage:   s,
+	})
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("cannot read default issuer: err: %v, resp: %v", err, resp)
+	}
+
+	// check if the 'default' keyword exists and the value is the same as the 'default' issuer's id
+	if resp.Data["default"] != defaultIssuerId {
+		t.Fatalf("expected '%v' but got '%v'", defaultIssuerId, resp.Data["default"])
+	}
+
+	// submit a new issuer
+	issuerName := "test-issuer"
+	resp, err = b.HandleRequest(context.Background(), &logical.Request{
+		Operation: logical.UpdateOperation,
+		Path:      "issuers/import/" + issuerName,
+		Storage:   s,
+	})
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("cannot submit new issuer: err: %v, resp: %v", err, resp)
+	}
+
+	// parse 'test-issuer's id
+	testIssuerId := resp.Data["issuer_id"]
+
+	// set 'test-issuer' as the 'default' issuer
+	resp, err = b.HandleRequest(context.Background(), &logical.Request{
+		Operation: logical.UpdateOperation,
+		Path:      "config/issuers",
+		Data: map[string]interface{}{
+			"default": issuerName,
+		},
+		Storage: s,
+	})
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("cannot set 'test-issuer' as default: err: %v, resp: %v", err, resp)
+	}
+
+	// read the 'default' issuer and check if it's the same as 'test-issuer'
+	resp, err = b.HandleRequest(context.Background(), &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      "config/issuers",
+		Storage:   s,
+	})
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("cannot read default issuer: err: %v, resp: %v", err, resp)
+	}
+
+	if resp.Data["default"] != testIssuerId {
+		t.Fatalf("expected '%v' but got '%v'", issuerName, resp.Data["default"])
+	}
+}

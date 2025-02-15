@@ -32,7 +32,7 @@ const (
 	// Present version of the sshRole struct; when adding a new field or are
 	// needing to perform a migration, increment this struct and read the note
 	// in checkUpgrade(...).
-	roleEntryVersion = 3
+	roleEntryVersion = 4
 )
 
 // Structure that represents a role in SSH backend. This is a common role structure
@@ -68,6 +68,7 @@ type sshRole struct {
 	AlgorithmSigner            string            `mapstructure:"algorithm_signer" json:"algorithm_signer"`
 	Version                    int               `mapstructure:"role_version" json:"role_version"`
 	NotBeforeDuration          time.Duration     `mapstructure:"not_before_duration" json:"not_before_duration"`
+	Issuer                     string            `mapstructure:"issuer_ref" json:"issuer_ref"`
 }
 
 func pathListRoles(b *backend) *framework.Path {
@@ -395,6 +396,10 @@ func pathRoles(b *backend) *framework.Path {
 					Name: "Allow User Key IDs",
 				},
 			},
+			"issuer_ref": {
+				Type:        framework.TypeString,
+				Description: `Reference to the issuer used to sign requests serviced by this role.`,
+			},
 		},
 
 		Operations: map[logical.Operation]framework.OperationHandler{
@@ -538,6 +543,7 @@ func (b *backend) createCARole(allowedUsers, defaultUser, signer string, data *f
 		AlgorithmSigner:           signer,
 		Version:                   roleEntryVersion,
 		NotBeforeDuration:         time.Duration(data.Get("not_before_duration").(int)) * time.Second,
+		Issuer:                    data.Get("issuer_ref").(string),
 	}
 
 	if !role.AllowUserCertificates && !role.AllowHostCertificates {
@@ -562,6 +568,13 @@ func (b *backend) createCARole(allowedUsers, defaultUser, signer string, data *f
 	role.DefaultCriticalOptions = defaultCriticalOptions
 	role.DefaultExtensions = defaultExtensions
 	role.AllowedUserKeyTypesLengths = allowedUserKeyLengths
+
+	// Just like in PKI, we ensure that the issuers ref is set to an non-empty value,
+	// 'default' if not set, and do not resolve the reference at role creation time;
+	// Instead, resolving it at use time.
+	if len(role.Issuer) == 0 {
+		role.Issuer = defaultRef
+	}
 
 	return role, nil
 }
@@ -661,6 +674,12 @@ func (b *backend) checkUpgrade(ctx context.Context, s logical.Storage, n string,
 		result.Version = 3
 	}
 
+	if result.Version < 4 {
+		modified = true
+		result.Issuer = defaultRef
+		result.Version = 4
+	}
+
 	// Add new migrations just before here.
 	//
 	// Condition copied from PKI builtin.
@@ -731,6 +750,7 @@ func (b *backend) parseRole(role *sshRole) (map[string]interface{}, error) {
 			"allowed_user_key_lengths":    role.AllowedUserKeyTypesLengths,
 			"algorithm_signer":            role.AlgorithmSigner,
 			"not_before_duration":         int64(role.NotBeforeDuration.Seconds()),
+			"issuer_ref":                  role.Issuer,
 		}
 	case KeyTypeDynamic:
 		return nil, errors.New("dynamic key type roles are no longer supported")
@@ -779,10 +799,17 @@ func (b *backend) pathRoleList(ctx context.Context, req *logical.Request, data *
 			continue
 		}
 
+		entryInfo := map[string]interface{}{}
 		if keyType, ok := roleInfo["key_type"]; ok {
-			keyInfo[entry] = map[string]interface{}{
-				"key_type": keyType,
-			}
+			entryInfo["key_type"] = keyType
+		}
+
+		if issuerRef, ok := roleInfo["issuer_ref"]; ok {
+			entryInfo["issuer_ref"] = issuerRef
+		}
+
+		if len(entryInfo) != 0 {
+			keyInfo[entry] = entryInfo
 		}
 	}
 
