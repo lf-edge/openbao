@@ -1,0 +1,3 @@
+```release-note:improvement
+credential/jwt: add support for Common Expression Language (CEL) login roles
+```

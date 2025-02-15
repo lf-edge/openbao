@@ -47,6 +47,23 @@ const (
 	SortedPoliciesTWEDelimiter = rune('\x7F')
 )
 
+func NewTokenType(s string) (TokenType, error) {
+	switch strings.ReplaceAll(s, "\"", "") {
+	case "default", "":
+		return TokenTypeDefault, nil
+	case "service":
+		return TokenTypeService, nil
+	case "batch":
+		return TokenTypeBatch, nil
+	case "default-service":
+		return TokenTypeDefaultService, nil
+	case "default-batch":
+		return TokenTypeDefaultBatch, nil
+	default:
+		return TokenTypeDefault, fmt.Errorf("unknown token type %q", s)
+	}
+}
+
 func (t *TokenType) UnmarshalJSON(b []byte) error {
 	if len(b) == 1 {
 		*t = TokenType(b[0] - '0')
@@ -54,21 +71,11 @@ func (t *TokenType) UnmarshalJSON(b []byte) error {
 	}
 
 	// Handle upgrade from pre-1.2 where we were serialized as string:
-	s := string(b)
-	switch s {
-	case `"default"`, `""`:
-		*t = TokenTypeDefault
-	case `"service"`:
-		*t = TokenTypeService
-	case `"batch"`:
-		*t = TokenTypeBatch
-	case `"default-service"`:
-		*t = TokenTypeDefaultService
-	case `"default-batch"`:
-		*t = TokenTypeDefaultBatch
-	default:
-		return fmt.Errorf("unknown token type %q", s)
+	tokenType, err := NewTokenType(string(b))
+	if err != nil {
+		return err
 	}
+	*t = tokenType
 	return nil
 }
 
