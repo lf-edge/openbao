@@ -277,6 +277,12 @@ func (b *databaseBackend) pathRoleDelete(ctx context.Context, req *logical.Reque
 }
 
 func (b *databaseBackend) pathStaticRoleDelete(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	name := data.Get("name").(string)
 
 	// Grab the exclusive lock
@@ -287,8 +293,7 @@ func (b *databaseBackend) pathStaticRoleDelete(ctx context.Context, req *logical
 	// Remove the item from the queue
 	_, _ = b.popFromRotationQueueByKey(name)
 
-	err := req.Storage.Delete(ctx, databaseStaticRolePath+name)
-	if err != nil {
+	if err := req.Storage.Delete(ctx, databaseStaticRolePath+name); err != nil {
 		return nil, err
 	}
 
@@ -311,6 +316,10 @@ func (b *databaseBackend) pathStaticRoleDelete(ctx context.Context, req *logical
 				merr = multierror.Append(merr, err)
 			}
 		}
+	}
+
+	if err := logical.EndTxStorage(ctx, req); err != nil {
+		return nil, err
 	}
 
 	return nil, merr.ErrorOrNil()
@@ -414,6 +423,12 @@ func (b *databaseBackend) pathRoleList(ctx context.Context, req *logical.Request
 }
 
 func (b *databaseBackend) pathRoleCreateUpdate(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	name := data.Get("name").(string)
 	if name == "" {
 		return logical.ErrorResponse("empty role name attribute given"), nil
@@ -525,10 +540,20 @@ func (b *databaseBackend) pathRoleCreateUpdate(ctx context.Context, req *logical
 		return nil, err
 	}
 
+	if err := logical.EndTxStorage(ctx, req); err != nil {
+		return nil, err
+	}
+
 	return nil, nil
 }
 
 func (b *databaseBackend) pathStaticRoleCreateUpdate(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	name := data.Get("name").(string)
 	if name == "" {
 		return logical.ErrorResponse("empty role name attribute given"), nil
@@ -676,6 +701,10 @@ func (b *databaseBackend) pathStaticRoleCreateUpdate(ctx context.Context, req *l
 
 	// Add their rotation to the queue
 	if err := b.pushItem(item); err != nil {
+		return nil, err
+	}
+
+	if err := logical.EndTxStorage(ctx, req); err != nil {
 		return nil, err
 	}
 

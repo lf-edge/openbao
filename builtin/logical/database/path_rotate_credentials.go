@@ -77,6 +77,12 @@ func pathRotateRootCredentials(b *databaseBackend) []*framework.Path {
 
 func (b *databaseBackend) pathRotateRootCredentialsUpdate() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+		txRollback, err := logical.StartTxStorage(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+		defer txRollback()
+
 		name := data.Get("name").(string)
 		if name == "" {
 			return logical.ErrorResponse(respErrEmptyName), nil
@@ -175,12 +181,22 @@ func (b *databaseBackend) pathRotateRootCredentialsUpdate() framework.OperationF
 		if err != nil {
 			b.Logger().Warn("unable to delete WAL", "error", err, "WAL ID", walID)
 		}
+
+		if err := logical.EndTxStorage(ctx, req); err != nil {
+			return nil, err
+		}
+
 		return nil, nil
 	}
 }
 
 func (b *databaseBackend) pathRotateRoleCredentialsUpdate() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+		txRollback, err := logical.StartTxStorage(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+		defer txRollback()
 		name := data.Get("name").(string)
 		if name == "" {
 			return logical.ErrorResponse("empty role name attribute given"), nil
@@ -238,6 +254,10 @@ func (b *databaseBackend) pathRotateRoleCredentialsUpdate() framework.OperationF
 		if err != nil {
 			return nil, fmt.Errorf("unable to finish rotating credentials; retries will "+
 				"continue in the background but it is also safe to retry manually: %w", err)
+		}
+
+		if err := logical.EndTxStorage(ctx, req); err != nil {
+			return nil, err
 		}
 
 		// return any err from the setStaticAccount call

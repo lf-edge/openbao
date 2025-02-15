@@ -318,6 +318,12 @@ func (b *databaseBackend) connectionDeleteHandler() framework.OperationFunc {
 // both builtin and plugin database types.
 func (b *databaseBackend) connectionWriteHandler() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+		txRollback, err := logical.StartTxStorage(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+		defer txRollback()
+
 		verifyConnection := data.Get("verify_connection").(bool)
 
 		name := data.Get("name").(string)
@@ -502,6 +508,10 @@ func (b *databaseBackend) connectionWriteHandler() framework.OperationFunc {
 		if dbw.isV4() && config.PasswordPolicy != "" {
 			resp.AddWarning(fmt.Sprintf("%s does not support password policies - upgrade to the latest version of "+
 				"OpenBao (or the sdk if using a custom plugin) to gain password policy support", config.PluginName))
+		}
+
+		if err := logical.EndTxStorage(ctx, req); err != nil {
+			return nil, err
 		}
 
 		if len(resp.Warnings) == 0 {
