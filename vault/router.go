@@ -569,8 +569,18 @@ func (r *Router) routeCommon(ctx context.Context, req *logical.Request, existenc
 	// Find the mount point
 	r.l.RLock()
 	adjustedPath := req.Path
-	mount, raw, ok := r.root.LongestPrefix(ns.Path + adjustedPath)
-	if !ok && !strings.HasSuffix(adjustedPath, "/") {
+
+	isNSPath := strings.HasPrefix(req.Path, "sys/namespaces/")
+	var mount string
+	var raw interface{}
+	var ok bool
+	if isNSPath {
+		mount, raw, ok = r.root.LongestPrefix(adjustedPath)
+	} else {
+		mount, raw, ok = r.root.LongestPrefix(ns.Path + adjustedPath)
+	}
+
+	if !isNSPath && !ok && !strings.HasSuffix(adjustedPath, "/") {
 		// Re-check for a backend by appending a slash. This lets "foo" mean
 		// "foo/" at the root level which is almost always what we want.
 		adjustedPath += "/"
@@ -616,7 +626,11 @@ func (r *Router) routeCommon(ctx context.Context, req *logical.Request, existenc
 
 	// Adjust the path to exclude the routing prefix
 	originalPath := req.Path
-	req.Path = strings.TrimPrefix(ns.Path+req.Path, mount)
+	if isNSPath {
+		req.Path = strings.TrimPrefix(req.Path, mount)
+	} else {
+		req.Path = strings.TrimPrefix(ns.Path+req.Path, mount)
+	}
 	req.MountPoint = mount
 	req.MountType = re.mountEntry.Type
 	req.SetMountRunningSha256(re.mountEntry.RunningSha256)

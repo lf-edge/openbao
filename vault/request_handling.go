@@ -557,10 +557,6 @@ func (c *Core) handleCancelableRequest(ctx context.Context, req *logical.Request
 		return nil, err
 	}
 
-	ns, err := namespace.FromContext(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("could not parse namespace from http context: %w", err)
-	}
 	var requestBodyToken string
 	var returnRequestAuthToken bool
 
@@ -683,14 +679,14 @@ func (c *Core) handleCancelableRequest(ctx context.Context, req *logical.Request
 		}
 	}
 
-	ns, err = namespace.FromContext(ctx)
-	if err != nil {
-		return nil, errwrap.Wrapf("could not parse namespace from http context: {{err}}", err)
-	}
+	//ns, err = namespace.FromContext(ctx)
+	//if err != nil {
+	//	return nil, errwrap.Wrapf("could not parse namespace from http context: {{err}}", err)
+	//}
 
-	if ns.Path != "" {
-		return nil, logical.CodedError(403, "namespaces feature not enabled")
-	}
+	//if ns.Path != "" {
+	//	return nil, logical.CodedError(403, "namespaces feature not enabled")
+	//}
 
 	var auth *logical.Auth
 	if c.isLoginRequest(ctx, req) {

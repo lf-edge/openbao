@@ -94,6 +94,8 @@ var (
 		"/v1/sys/mounts/",
 		"/v1/sys/policy",
 		"/v1/sys/policy/",
+		"/v1/sys/namespaces",
+		"/v1/sys/namespaces/",
 		"/v1/sys/rekey/backup",
 		"/v1/sys/rekey/recovery-key-backup",
 		"/v1/sys/remount",

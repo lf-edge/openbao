@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
+	"github.com/openbao/openbao/sdk/v2/helper/consts"
 	"github.com/openbao/openbao/sdk/v2/logical"
 
 	"github.com/openbao/openbao/helper/namespace"
@@ -21,7 +22,81 @@ import (
 )
 
 var (
+	restrictedAPIs = []string{
+		"sys/audit",
+		"sys/audit-hash",
+		"sys/config/cors",
+		"sys/config/reload",
+		"sys/config/state",
+		"sys/config/ui",
+		"sys/decode-token",
+		"sys/generate-recovery-token",
+		"sys/generate-root",
+		"sys/health",
+		"sys/host-info",
+		"sys/in-flight-req",
+		"sys/init",
+		"sys/internal/counters/activity",
+		"sys/internal/counters/activity/export",
+		"sys/internal/counters/activity/monthly",
+		"sys/internal/counters/config",
+		"sys/key-status",
+		"sys/loggers",
+		"sys/metrics",
+		"sys/monitor",
+		"sys/quotas/config",
+		"sys/quotas/lease-count",
+		"sys/quotas/rate-limit",
+		"sys/raw",
+		"sys/rekey-recovery-key",
+		"sys/replication/recover",
+		"sys/replication/reindex",
+		"sys/replication/status",
+		"sys/replication/merkle-check",
+		"sys/rotate/config",
+		"sys/rotate",
+		"sys/seal",
+		"sys/sealwrap/rewrap",
+		"sys/step-down",
+		"sys/storage",
+		"sys/sync/config",
+		"sys/unseal",
+	}
+	containsAPIs = []string{
+		"sys/config/auditing/",
+		"sys/internal/inspect/router/",
+		"sys/managed-keys/",
+		"sys/mfa/method/",
+		"sys/pprof/",
+		"sys/rekey/",
+	}
+
 	adjustRequest = func(c *vault.Core, r *http.Request) (*http.Request, int) {
+		u := r.URL
+		p := u.Path[3:]
+		for _, api := range restrictedAPIs {
+			if strings.HasSuffix(p, api) {
+				return r, 0
+			}
+		}
+		for _, api := range containsAPIs {
+			if strings.Contains(p, api) {
+				return r, 0
+			}
+		}
+
+		id := namespace.RootNamespaceID
+		namespace.RootNamespace.ID = id // this is reset to root namespace id
+		ns := namespace.Canonicalize(r.Header.Get(consts.NamespaceHeaderName))
+		if ns != "" && ns != "/" {
+			id += "/" + ns
+		}
+		r = r.WithContext(namespace.ContextWithNamespace(r.Context(), &namespace.Namespace{
+			ID:             id,
+			Path:           ns,
+			CustomMetadata: map[string]string{},
+		}))
+
 		return r, 0
 	}
 

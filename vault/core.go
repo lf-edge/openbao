@@ -376,6 +376,9 @@ type Core struct {
 	// token store is used to manage authentication tokens
 	tokenStore *TokenStore
 
+	// namespace Store is used to manage namespaces
+	namespaceStore *NamespaceStore
+
 	// identityStore is used to manage client entities
 	identityStore *IdentityStore
 
@@ -2250,6 +2253,9 @@ func (s standardUnsealStrategy) unseal(ctx context.Context, logger log.Logger, c
 	if err := c.setupMounts(ctx); err != nil {
 		return err
 	}
+	if err := c.setupNamespaceStore(ctx); err != nil {
+		return err
+	}
 	if err := c.setupPolicyStore(ctx); err != nil {
 		return err
 	}
@@ -2465,6 +2471,9 @@ func (c *Core) preSeal() error {
 	}
 	if err := c.teardownPolicyStore(); err != nil {
 		result = multierror.Append(result, fmt.Errorf("error tearing down policy store: %w", err))
+	}
+	if err := c.teardownNamespaceStore(); err != nil {
+		result = multierror.Append(result, fmt.Errorf("error tearing down namespaces store: %w", err))
 	}
 	if err := c.stopRollback(); err != nil {
 		result = multierror.Append(result, fmt.Errorf("error stopping rollback: %w", err))
