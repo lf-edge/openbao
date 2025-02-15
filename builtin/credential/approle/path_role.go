@@ -1357,6 +1357,12 @@ func (b *backend) pathRoleList(ctx context.Context, req *logical.Request, data *
 
 // pathRoleSecretIDList is used to list all the 'secret_id_accessor's issued against the role.
 func (b *backend) pathRoleSecretIDList(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	roleName := data.Get("role_name").(string)
 	if roleName == "" {
 		return logical.ErrorResponse("missing role_name"), nil
@@ -1430,6 +1436,10 @@ func (b *backend) pathRoleSecretIDList(ctx context.Context, req *logical.Request
 		}
 		listItems = append(listItems, result.SecretIDAccessor)
 		secretIDLock.RUnlock()
+	}
+
+	if err := logical.EndTxStorage(ctx, req); err != nil {
+		return nil, err
 	}
 
 	return logical.ListResponse(listItems), nil
@@ -1587,6 +1597,12 @@ func (b *backend) roleEntry(ctx context.Context, s logical.Storage, roleName str
 // pathRoleCreateUpdate registers a new role with the backend or updates the options
 // of an existing role
 func (b *backend) pathRoleCreateUpdate(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	roleName := data.Get("role_name").(string)
 	if roleName == "" {
 		return logical.ErrorResponse("missing role_name"), nil
@@ -1727,11 +1743,25 @@ func (b *backend) pathRoleCreateUpdate(ctx context.Context, req *logical.Request
 	}
 
 	// Store the entry.
-	return resp, b.setRoleEntry(ctx, req.Storage, role.name, role, previousRoleID)
+	if err := b.setRoleEntry(ctx, req.Storage, role.name, role, previousRoleID); err != nil {
+		return resp, err
+	}
+
+	if err := logical.EndTxStorage(ctx, req); err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }
 
 // pathRoleRead grabs a read lock and reads the options set on the role from the storage
 func (b *backend) pathRoleRead(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	roleName := data.Get("role_name").(string)
 	if roleName == "" {
 		return logical.ErrorResponse("missing role_name"), nil
@@ -1817,11 +1847,21 @@ func (b *backend) pathRoleRead(ctx context.Context, req *logical.Request, data *
 
 	lockRelease()
 
+	if err := logical.EndTxStorage(ctx, req); err != nil {
+		return nil, err
+	}
+
 	return resp, nil
 }
 
 // pathRoleDelete removes the role from the storage
 func (b *backend) pathRoleDelete(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	roleName := data.Get("role_name").(string)
 	if roleName == "" {
 		return logical.ErrorResponse("missing role_name"), nil
@@ -1854,11 +1894,21 @@ func (b *backend) pathRoleDelete(ctx context.Context, req *logical.Request, data
 		return nil, err
 	}
 
+	if err := logical.EndTxStorage(ctx, req); err != nil {
+		return nil, err
+	}
+
 	return nil, nil
 }
 
 // Returns the properties of the SecretID
 func (b *backend) pathRoleSecretIDLookupUpdate(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	roleName := data.Get("role_name").(string)
 	if roleName == "" {
 		return logical.ErrorResponse("missing role_name"), nil
@@ -1922,6 +1972,10 @@ func (b *backend) pathRoleSecretIDLookupUpdate(ctx context.Context, req *logical
 		return logical.ErrorResponse("invalid secret id"), nil
 	}
 
+	if err := logical.EndTxStorage(ctx, req); err != nil {
+		return nil, err
+	}
+
 	return &logical.Response{
 		Data: secretIDEntry.ToResponseData(),
 	}, nil
@@ -1946,6 +2000,12 @@ func (entry *secretIDStorageEntry) ToResponseData() map[string]interface{} {
 }
 
 func (b *backend) pathRoleSecretIDDestroyUpdateDelete(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	roleName := data.Get("role_name").(string)
 	if roleName == "" {
 		return logical.ErrorResponse("missing role_name"), nil
@@ -2002,12 +2062,22 @@ func (b *backend) pathRoleSecretIDDestroyUpdateDelete(ctx context.Context, req *
 		return nil, fmt.Errorf("failed to delete secret_id: %w", err)
 	}
 
+	if err := logical.EndTxStorage(ctx, req); err != nil {
+		return nil, err
+	}
+
 	return nil, nil
 }
 
 // pathRoleSecretIDAccessorLookupUpdate returns the properties of the SecretID
 // given its accessor
 func (b *backend) pathRoleSecretIDAccessorLookupUpdate(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	roleName := data.Get("role_name").(string)
 	if roleName == "" {
 		return logical.ErrorResponse("missing role_name"), nil
@@ -2063,12 +2133,22 @@ func (b *backend) pathRoleSecretIDAccessorLookupUpdate(ctx context.Context, req 
 		return nil, nil
 	}
 
+	if err := logical.EndTxStorage(ctx, req); err != nil {
+		return nil, err
+	}
+
 	return &logical.Response{
 		Data: secretIDEntry.ToResponseData(),
 	}, nil
 }
 
 func (b *backend) pathRoleSecretIDAccessorDestroyUpdateDelete(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	roleName := data.Get("role_name").(string)
 	if roleName == "" {
 		return logical.ErrorResponse("missing role_name"), nil
@@ -2129,6 +2209,10 @@ func (b *backend) pathRoleSecretIDAccessorDestroyUpdateDelete(ctx context.Contex
 		return nil, fmt.Errorf("failed to delete secret_id: %w", err)
 	}
 
+	if err := logical.EndTxStorage(ctx, req); err != nil {
+		return nil, err
+	}
+
 	return nil, nil
 }
 
@@ -2151,6 +2235,12 @@ func (b *backend) pathRoleTokenBoundCIDRUpdate(ctx context.Context, req *logical
 }
 
 func (b *backend) pathRoleBoundCIDRUpdateCommon(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	roleName := data.Get("role_name").(string)
 	if roleName == "" {
 		return logical.ErrorResponse("missing role_name"), nil
@@ -2191,7 +2281,15 @@ func (b *backend) pathRoleBoundCIDRUpdateCommon(ctx context.Context, req *logica
 		role.TokenBoundCIDRs = cidrs
 	}
 
-	return nil, b.setRoleEntry(ctx, req.Storage, role.name, role, "")
+	if err := b.setRoleEntry(ctx, req.Storage, role.name, role, ""); err != nil {
+		return nil, err
+	}
+
+	if err := logical.EndTxStorage(ctx, req); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
 }
 
 func (b *backend) pathRoleSecretIDBoundCIDRRead(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
@@ -2252,6 +2350,12 @@ func (b *backend) pathRoleFieldRead(ctx context.Context, req *logical.Request, d
 }
 
 func (b *backend) pathRoleBoundCIDRDelete(ctx context.Context, req *logical.Request, data *framework.FieldData, fieldName string) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	roleName := data.Get("role_name").(string)
 	if roleName == "" {
 		return logical.ErrorResponse("missing role_name"), nil
@@ -2278,7 +2382,15 @@ func (b *backend) pathRoleBoundCIDRDelete(ctx context.Context, req *logical.Requ
 		role.TokenBoundCIDRs = nil
 	}
 
-	return nil, b.setRoleEntry(ctx, req.Storage, roleName, role, "")
+	if err := b.setRoleEntry(ctx, req.Storage, roleName, role, ""); err != nil {
+		return nil, err
+	}
+
+	if err := logical.EndTxStorage(ctx, req); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
 }
 
 func (b *backend) pathRoleBoundCIDRListDelete(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
@@ -2294,6 +2406,12 @@ func (b *backend) pathRoleTokenBoundCIDRDelete(ctx context.Context, req *logical
 }
 
 func (b *backend) pathRoleBindSecretIDUpdate(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	roleName := data.Get("role_name").(string)
 	if roleName == "" {
 		return logical.ErrorResponse("missing role_name"), nil
@@ -2313,7 +2431,13 @@ func (b *backend) pathRoleBindSecretIDUpdate(ctx context.Context, req *logical.R
 
 	if bindSecretIDRaw, ok := data.GetOk("bind_secret_id"); ok {
 		role.BindSecretID = bindSecretIDRaw.(bool)
-		return nil, b.setRoleEntry(ctx, req.Storage, role.name, role, "")
+		if err := b.setRoleEntry(ctx, req.Storage, role.name, role, ""); err != nil {
+			return nil, err
+		}
+		if err := logical.EndTxStorage(ctx, req); err != nil {
+			return nil, err
+		}
+		return nil, nil
 	} else {
 		return logical.ErrorResponse("missing bind_secret_id"), nil
 	}
@@ -2345,6 +2469,12 @@ func (b *backend) pathRoleBindSecretIDRead(ctx context.Context, req *logical.Req
 }
 
 func (b *backend) pathRoleBindSecretIDDelete(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	roleName := data.Get("role_name").(string)
 	if roleName == "" {
 		return logical.ErrorResponse("missing role_name"), nil
@@ -2365,7 +2495,15 @@ func (b *backend) pathRoleBindSecretIDDelete(ctx context.Context, req *logical.R
 	// Deleting a field implies setting the value to it's default value.
 	role.BindSecretID = data.GetDefaultOrZero("bind_secret_id").(bool)
 
-	return nil, b.setRoleEntry(ctx, req.Storage, role.name, role, "")
+	if err := b.setRoleEntry(ctx, req.Storage, role.name, role, ""); err != nil {
+		return nil, err
+	}
+
+	if err := logical.EndTxStorage(ctx, req); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
 }
 
 func (b *backend) pathRoleLocalSecretIDsRead(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
@@ -2399,6 +2537,12 @@ func (b *backend) pathRoleLocalSecretIDsRead(ctx context.Context, req *logical.R
 }
 
 func (b *backend) pathRolePoliciesUpdate(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	roleName := data.Get("role_name").(string)
 	if roleName == "" {
 		return logical.ErrorResponse("missing role_name"), nil
@@ -2435,7 +2579,15 @@ func (b *backend) pathRolePoliciesUpdate(ctx context.Context, req *logical.Reque
 		}
 	}
 
-	return nil, b.setRoleEntry(ctx, req.Storage, role.name, role, "")
+	if err := b.setRoleEntry(ctx, req.Storage, role.name, role, ""); err != nil {
+		return nil, err
+	}
+
+	if err := logical.EndTxStorage(ctx, req); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
 }
 
 func (b *backend) pathRolePoliciesRead(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
@@ -2474,6 +2626,12 @@ func (b *backend) pathRolePoliciesRead(ctx context.Context, req *logical.Request
 }
 
 func (b *backend) pathRolePoliciesDelete(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	roleName := data.Get("role_name").(string)
 	if roleName == "" {
 		return logical.ErrorResponse("missing role_name"), nil
@@ -2494,10 +2652,24 @@ func (b *backend) pathRolePoliciesDelete(ctx context.Context, req *logical.Reque
 	role.TokenPolicies = nil
 	role.Policies = nil
 
-	return nil, b.setRoleEntry(ctx, req.Storage, role.name, role, "")
+	if err := b.setRoleEntry(ctx, req.Storage, role.name, role, ""); err != nil {
+		return nil, err
+	}
+
+	if err := logical.EndTxStorage(ctx, req); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
 }
 
 func (b *backend) pathRoleSecretIDNumUsesUpdate(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	roleName := data.Get("role_name").(string)
 	if roleName == "" {
 		return logical.ErrorResponse("missing role_name"), nil
@@ -2520,13 +2692,28 @@ func (b *backend) pathRoleSecretIDNumUsesUpdate(ctx context.Context, req *logica
 		if role.SecretIDNumUses < 0 {
 			return logical.ErrorResponse("secret_id_num_uses cannot be negative"), nil
 		}
-		return nil, b.setRoleEntry(ctx, req.Storage, role.name, role, "")
+
+		if err := b.setRoleEntry(ctx, req.Storage, role.name, role, ""); err != nil {
+			return nil, err
+		}
+
+		if err := logical.EndTxStorage(ctx, req); err != nil {
+			return nil, err
+		}
+
+		return nil, nil
 	} else {
 		return logical.ErrorResponse("missing secret_id_num_uses"), nil
 	}
 }
 
 func (b *backend) pathRoleRoleIDUpdate(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	roleName := data.Get("role_name").(string)
 	if roleName == "" {
 		return logical.ErrorResponse("missing role_name"), nil
@@ -2550,7 +2737,15 @@ func (b *backend) pathRoleRoleIDUpdate(ctx context.Context, req *logical.Request
 		return logical.ErrorResponse("missing role_id"), nil
 	}
 
-	return nil, b.setRoleEntry(ctx, req.Storage, role.name, role, previousRoleID)
+	if err := b.setRoleEntry(ctx, req.Storage, role.name, role, previousRoleID); err != nil {
+		return nil, err
+	}
+
+	if err := logical.EndTxStorage(ctx, req); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
 }
 
 func (b *backend) pathRoleRoleIDRead(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
@@ -2604,6 +2799,12 @@ func (b *backend) pathRoleSecretIDNumUsesRead(ctx context.Context, req *logical.
 }
 
 func (b *backend) pathRoleSecretIDNumUsesDelete(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	roleName := data.Get("role_name").(string)
 	if roleName == "" {
 		return logical.ErrorResponse("missing role_name"), nil
@@ -2623,10 +2824,24 @@ func (b *backend) pathRoleSecretIDNumUsesDelete(ctx context.Context, req *logica
 
 	role.SecretIDNumUses = data.GetDefaultOrZero("secret_id_num_uses").(int)
 
-	return nil, b.setRoleEntry(ctx, req.Storage, role.name, role, "")
+	if err := b.setRoleEntry(ctx, req.Storage, role.name, role, ""); err != nil {
+		return nil, err
+	}
+
+	if err := logical.EndTxStorage(ctx, req); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
 }
 
 func (b *backend) pathRoleSecretIDTTLUpdate(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	roleName := data.Get("role_name").(string)
 	if roleName == "" {
 		return logical.ErrorResponse("missing role_name"), nil
@@ -2646,7 +2861,16 @@ func (b *backend) pathRoleSecretIDTTLUpdate(ctx context.Context, req *logical.Re
 
 	if secretIDTTLRaw, ok := data.GetOk("secret_id_ttl"); ok {
 		role.SecretIDTTL = time.Second * time.Duration(secretIDTTLRaw.(int))
-		return nil, b.setRoleEntry(ctx, req.Storage, role.name, role, "")
+
+		if err := b.setRoleEntry(ctx, req.Storage, role.name, role, ""); err != nil {
+			return nil, err
+		}
+
+		if err := logical.EndTxStorage(ctx, req); err != nil {
+			return nil, err
+		}
+
+		return nil, nil
 	} else {
 		return logical.ErrorResponse("missing secret_id_ttl"), nil
 	}
@@ -2678,6 +2902,12 @@ func (b *backend) pathRoleSecretIDTTLRead(ctx context.Context, req *logical.Requ
 }
 
 func (b *backend) pathRoleSecretIDTTLDelete(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	roleName := data.Get("role_name").(string)
 	if roleName == "" {
 		return logical.ErrorResponse("missing role_name"), nil
@@ -2697,10 +2927,24 @@ func (b *backend) pathRoleSecretIDTTLDelete(ctx context.Context, req *logical.Re
 
 	role.SecretIDTTL = time.Second * time.Duration(data.GetDefaultOrZero("secret_id_ttl").(int))
 
-	return nil, b.setRoleEntry(ctx, req.Storage, role.name, role, "")
+	if err := b.setRoleEntry(ctx, req.Storage, role.name, role, ""); err != nil {
+		return nil, err
+	}
+
+	if err := logical.EndTxStorage(ctx, req); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
 }
 
 func (b *backend) pathRolePeriodUpdate(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	roleName := data.Get("role_name").(string)
 	if roleName == "" {
 		return logical.ErrorResponse("missing role_name"), nil
@@ -2740,7 +2984,16 @@ func (b *backend) pathRolePeriodUpdate(ctx context.Context, req *logical.Request
 	if role.TokenPeriod > b.System().MaxLeaseTTL() {
 		return logical.ErrorResponse(fmt.Sprintf("period of %q is greater than the backend's maximum lease TTL of %q", role.Period.String(), b.System().MaxLeaseTTL().String())), nil
 	}
-	return nil, b.setRoleEntry(ctx, req.Storage, role.name, role, "")
+
+	if err := b.setRoleEntry(ctx, req.Storage, role.name, role, ""); err != nil {
+		return nil, err
+	}
+
+	if err := logical.EndTxStorage(ctx, req); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
 }
 
 func (b *backend) pathRolePeriodRead(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
@@ -2775,6 +3028,12 @@ func (b *backend) pathRolePeriodRead(ctx context.Context, req *logical.Request, 
 }
 
 func (b *backend) pathRolePeriodDelete(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	roleName := data.Get("role_name").(string)
 	if roleName == "" {
 		return logical.ErrorResponse("missing role_name"), nil
@@ -2795,10 +3054,24 @@ func (b *backend) pathRolePeriodDelete(ctx context.Context, req *logical.Request
 	role.TokenPeriod = 0
 	role.Period = 0
 
-	return nil, b.setRoleEntry(ctx, req.Storage, role.name, role, "")
+	if err := b.setRoleEntry(ctx, req.Storage, role.name, role, ""); err != nil {
+		return nil, err
+	}
+
+	if err := logical.EndTxStorage(ctx, req); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
 }
 
 func (b *backend) pathRoleTokenNumUsesUpdate(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	roleName := data.Get("role_name").(string)
 	if roleName == "" {
 		return logical.ErrorResponse("missing role_name"), nil
@@ -2818,7 +3091,15 @@ func (b *backend) pathRoleTokenNumUsesUpdate(ctx context.Context, req *logical.R
 
 	if tokenNumUsesRaw, ok := data.GetOk("token_num_uses"); ok {
 		role.TokenNumUses = tokenNumUsesRaw.(int)
-		return nil, b.setRoleEntry(ctx, req.Storage, role.name, role, "")
+		if err := b.setRoleEntry(ctx, req.Storage, role.name, role, ""); err != nil {
+			return nil, err
+		}
+
+		if err := logical.EndTxStorage(ctx, req); err != nil {
+			return nil, err
+		}
+
+		return nil, nil
 	} else {
 		return logical.ErrorResponse("missing token_num_uses"), nil
 	}
@@ -2873,6 +3154,12 @@ func (b *backend) pathRoleTokenNumUsesDelete(ctx context.Context, req *logical.R
 }
 
 func (b *backend) pathRoleTokenTTLUpdate(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	roleName := data.Get("role_name").(string)
 	if roleName == "" {
 		return logical.ErrorResponse("missing role_name"), nil
@@ -2895,7 +3182,15 @@ func (b *backend) pathRoleTokenTTLUpdate(ctx context.Context, req *logical.Reque
 		if role.TokenMaxTTL > time.Duration(0) && role.TokenTTL > role.TokenMaxTTL {
 			return logical.ErrorResponse("token_ttl should not be greater than token_max_ttl"), nil
 		}
-		return nil, b.setRoleEntry(ctx, req.Storage, role.name, role, "")
+		if err := b.setRoleEntry(ctx, req.Storage, role.name, role, ""); err != nil {
+			return nil, err
+		}
+
+		if err := logical.EndTxStorage(ctx, req); err != nil {
+			return nil, err
+		}
+
+		return nil, nil
 	} else {
 		return logical.ErrorResponse("missing token_ttl"), nil
 	}
@@ -2927,6 +3222,12 @@ func (b *backend) pathRoleTokenTTLRead(ctx context.Context, req *logical.Request
 }
 
 func (b *backend) pathRoleTokenTTLDelete(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	roleName := data.Get("role_name").(string)
 	if roleName == "" {
 		return logical.ErrorResponse("missing role_name"), nil
@@ -2946,10 +3247,24 @@ func (b *backend) pathRoleTokenTTLDelete(ctx context.Context, req *logical.Reque
 
 	role.TokenTTL = time.Second * time.Duration(data.GetDefaultOrZero("token_ttl").(int))
 
-	return nil, b.setRoleEntry(ctx, req.Storage, role.name, role, "")
+	if err := b.setRoleEntry(ctx, req.Storage, role.name, role, ""); err != nil {
+		return nil, err
+	}
+
+	if err := logical.EndTxStorage(ctx, req); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
 }
 
 func (b *backend) pathRoleTokenMaxTTLUpdate(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	roleName := data.Get("role_name").(string)
 	if roleName == "" {
 		return logical.ErrorResponse("missing role_name"), nil
@@ -2972,7 +3287,15 @@ func (b *backend) pathRoleTokenMaxTTLUpdate(ctx context.Context, req *logical.Re
 		if role.TokenMaxTTL > time.Duration(0) && role.TokenTTL > role.TokenMaxTTL {
 			return logical.ErrorResponse("token_max_ttl should be greater than or equal to token_ttl"), nil
 		}
-		return nil, b.setRoleEntry(ctx, req.Storage, role.name, role, "")
+		if err := b.setRoleEntry(ctx, req.Storage, role.name, role, ""); err != nil {
+			return nil, err
+		}
+
+		if err := logical.EndTxStorage(ctx, req); err != nil {
+			return nil, err
+		}
+
+		return nil, nil
 	} else {
 		return logical.ErrorResponse("missing token_max_ttl"), nil
 	}
@@ -3004,6 +3327,12 @@ func (b *backend) pathRoleTokenMaxTTLRead(ctx context.Context, req *logical.Requ
 }
 
 func (b *backend) pathRoleTokenMaxTTLDelete(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	roleName := data.Get("role_name").(string)
 	if roleName == "" {
 		return logical.ErrorResponse("missing role_name"), nil
@@ -3023,7 +3352,15 @@ func (b *backend) pathRoleTokenMaxTTLDelete(ctx context.Context, req *logical.Re
 
 	role.TokenMaxTTL = time.Second * time.Duration(data.GetDefaultOrZero("token_max_ttl").(int))
 
-	return nil, b.setRoleEntry(ctx, req.Storage, role.name, role, "")
+	if err := b.setRoleEntry(ctx, req.Storage, role.name, role, ""); err != nil {
+		return nil, err
+	}
+
+	if err := logical.EndTxStorage(ctx, req); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
 }
 
 func (b *backend) pathRoleSecretIDUpdate(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
@@ -3039,6 +3376,12 @@ func (b *backend) pathRoleCustomSecretIDUpdate(ctx context.Context, req *logical
 }
 
 func (b *backend) handleRoleSecretIDCommon(ctx context.Context, req *logical.Request, data *framework.FieldData, secretID string) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	roleName := data.Get("role_name").(string)
 	if roleName == "" {
 		return logical.ErrorResponse("missing role_name"), nil
@@ -3152,6 +3495,10 @@ func (b *backend) handleRoleSecretIDCommon(ctx context.Context, req *logical.Req
 			"secret_id_ttl":      int64(b.deriveSecretIDTTL(secretIDStorage.SecretIDTTL).Seconds()),
 			"secret_id_num_uses": secretIDStorage.SecretIDNumUses,
 		},
+	}
+
+	if err := logical.EndTxStorage(ctx, req); err != nil {
+		return nil, err
 	}
 
 	return resp, nil

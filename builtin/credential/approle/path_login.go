@@ -88,6 +88,12 @@ func (b *backend) pathLoginUpdateAliasLookahead(ctx context.Context, req *logica
 }
 
 func (b *backend) pathLoginResolveRole(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	// RoleID must be supplied during every login
 	roleID := strings.TrimSpace(data.Get("role_id").(string))
 	if roleID == "" {
@@ -117,12 +123,22 @@ func (b *backend) pathLoginResolveRole(ctx context.Context, req *logical.Request
 		return logical.ErrorResponse("invalid role or secret ID"), nil
 	}
 
+	if err := logical.EndTxStorage(ctx, req); err != nil {
+		return nil, err
+	}
+
 	return logical.ResolveRoleResponse(roleName)
 }
 
 // Returns the Auth object indicating the authentication and authorization information
 // if the credentials provided are validated by the backend.
 func (b *backend) pathLoginUpdate(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	// RoleID must be supplied during every login
 	roleID := strings.TrimSpace(data.Get("role_id").(string))
 	if roleID == "" {
@@ -382,6 +398,10 @@ func (b *backend) pathLoginUpdate(ctx context.Context, req *logical.Request, dat
 
 	// Allow for overridden token bound CIDRs
 	auth.BoundCIDRs = tokenBoundCIDRs
+
+	if err := logical.EndTxStorage(ctx, req); err != nil {
+		return nil, err
+	}
 
 	return &logical.Response{
 		Auth: auth,
