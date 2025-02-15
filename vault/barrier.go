@@ -57,7 +57,11 @@ const (
 	// have the old root key. This key can be decrypted if you have the
 	// keyring to discover the new root key. The new root key is then
 	// used to reload the keyring itself.
-	rootKeyPath = "core/master"
+	rootKeyPath = "core/root-key"
+
+	// legacyRootKeyPath is the former value of rootKeyPath and is replaced
+	// on initialization or rotation.
+	legacyRootKeyPath = "core/master"
 
 	// shamirKekPath is used with Shamir in v1.3+ to store a copy of the
 	// unseal key behind the barrier.  As with rootKeyPath this is primarily

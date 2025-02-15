@@ -310,6 +310,12 @@ func (b *AESGCMBarrier) persistKeyringInternal(ctx context.Context, keyring *Key
 	if err := b.backend.Put(ctx, pe); err != nil {
 		return fmt.Errorf("failed to persist root key: %w", err)
 	}
+
+	// Delete the legacy value if it exists.
+	if err := b.backend.Delete(ctx, legacyRootKeyPath); err != nil {
+		return fmt.Errorf("failed to remove legacy root key path: %w", err)
+	}
+
 	return nil
 }
 
@@ -423,9 +429,16 @@ func (b *AESGCMBarrier) ReloadRootKey(ctx context.Context) error {
 
 	// The rootKeyPath could be missing (backwards incompatible),
 	// we can ignore this and attempt to make progress with the current
-	// root key.
+	// root key. First check the legacy root key path first, though.
 	if out == nil {
-		return nil
+		out, err = b.Get(ctx, legacyRootKeyPath)
+		if err != nil {
+			return fmt.Errorf("failed to read legacy root key path: %w", err)
+		}
+
+		if out == nil {
+			return nil
+		}
 	}
 
 	// Grab write lock and refetch
@@ -438,7 +451,14 @@ func (b *AESGCMBarrier) ReloadRootKey(ctx context.Context) error {
 	}
 
 	if out == nil {
-		return nil
+		out, err = b.Get(ctx, legacyRootKeyPath)
+		if err != nil {
+			return fmt.Errorf("failed to read legacy root key path: %w", err)
+		}
+
+		if out == nil {
+			return nil
+		}
 	}
 
 	// Deserialize the root key
