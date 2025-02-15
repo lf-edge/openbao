@@ -54,6 +54,12 @@ type creationBundle struct {
 }
 
 func (b *backend) pathSignIssueCertificateHelper(ctx context.Context, req *logical.Request, data *framework.FieldData, role *sshRole, publicKey ssh.PublicKey) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	// Note that these various functions always return "user errors" so we pass
 	// them as 4xx values
 	keyID, err := b.calculateKeyID(data, req, role, publicKey)
@@ -145,6 +151,10 @@ func (b *backend) pathSignIssueCertificateHelper(ctx context.Context, req *logic
 
 	if addExtTemplatingWarning {
 		response.AddWarning("default_extension templating enabled with at least one extension requiring identity templating. However, this request lacked identity entity information, causing one or more extensions to be skipped from the generated certificate.")
+	}
+
+	if err := logical.EndTxStorage(ctx, req); err != nil {
+		return nil, err
 	}
 
 	return response, nil

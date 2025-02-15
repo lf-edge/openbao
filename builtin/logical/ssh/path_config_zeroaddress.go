@@ -86,6 +86,12 @@ func (b *backend) pathConfigZeroAddressRead(ctx context.Context, req *logical.Re
 }
 
 func (b *backend) pathConfigZeroAddressWrite(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	roles := d.Get("roles").([]string)
 	if len(roles) == 0 {
 		return logical.ErrorResponse("Missing roles"), nil
@@ -102,8 +108,11 @@ func (b *backend) pathConfigZeroAddressWrite(ctx context.Context, req *logical.R
 		}
 	}
 
-	err := b.putZeroAddressRoles(ctx, req.Storage, roles)
-	if err != nil {
+	if err := b.putZeroAddressRoles(ctx, req.Storage, roles); err != nil {
+		return nil, err
+	}
+
+	if err := logical.EndTxStorage(ctx, req); err != nil {
 		return nil, err
 	}
 

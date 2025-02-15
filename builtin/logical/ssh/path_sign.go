@@ -73,6 +73,12 @@ be later than the role max TTL.`,
 }
 
 func (b *backend) pathSign(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	roleName := data.Get("role").(string)
 
 	// Get the role
@@ -84,7 +90,16 @@ func (b *backend) pathSign(ctx context.Context, req *logical.Request, data *fram
 		return logical.ErrorResponse(fmt.Sprintf("Unknown role: %s", roleName)), nil
 	}
 
-	return b.pathSignCertificate(ctx, req, data, role)
+	resp, err := b.pathSignCertificate(ctx, req, data, role)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := logical.EndTxStorage(ctx, req); err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }
 
 func (b *backend) pathSignCertificate(ctx context.Context, req *logical.Request, data *framework.FieldData, role *sshRole) (*logical.Response, error) {

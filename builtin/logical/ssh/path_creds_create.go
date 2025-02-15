@@ -58,6 +58,12 @@ func pathCredsCreate(b *backend) *framework.Path {
 }
 
 func (b *backend) pathCredsCreateWrite(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	roleName := d.Get("role").(string)
 	if roleName == "" {
 		return logical.ErrorResponse("Missing role"), nil
@@ -155,6 +161,10 @@ func (b *backend) pathCredsCreateWrite(ctx context.Context, req *logical.Request
 		return nil, errors.New("key type unknown")
 	}
 
+	if err := logical.EndTxStorage(ctx, req); err != nil {
+		return nil, err
+	}
+
 	return result, nil
 }
 
@@ -174,6 +184,12 @@ func (b *backend) GenerateSaltedOTP(ctx context.Context) (string, string, error)
 
 // Generates an UUID OTP and creates an entry for the same in storage backend with its salted string.
 func (b *backend) GenerateOTPCredential(ctx context.Context, req *logical.Request, sshOTPEntry *sshOTP) (string, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return "", err
+	}
+	defer txRollback()
+
 	otp, otpSalted, err := b.GenerateSaltedOTP(ctx)
 	if err != nil {
 		return "", err
@@ -205,6 +221,11 @@ func (b *backend) GenerateOTPCredential(ctx context.Context, req *logical.Reques
 	if err := req.Storage.Put(ctx, newEntry); err != nil {
 		return "", err
 	}
+
+	if err := logical.EndTxStorage(ctx, req); err != nil {
+		return "", err
+	}
+
 	return otp, nil
 }
 

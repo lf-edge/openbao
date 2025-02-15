@@ -84,6 +84,12 @@ be later than the role max TTL.`,
 }
 
 func (b *backend) pathIssue(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	// Get the role
 	roleName := data.Get("role").(string)
 	role, err := b.getRole(ctx, req.Storage, roleName)
@@ -105,7 +111,16 @@ func (b *backend) pathIssue(ctx context.Context, req *logical.Request, data *fra
 	}
 
 	// Issue certificate
-	return b.pathIssueCertificate(ctx, req, data, role, keySpecs)
+	resp, err := b.pathIssueCertificate(ctx, req, data, role, keySpecs)
+	if err != nil {
+		return logical.ErrorResponse(err.Error()), nil
+	}
+
+	if err := logical.EndTxStorage(ctx, req); err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }
 
 func (b *backend) pathIssueCertificate(ctx context.Context, req *logical.Request, data *framework.FieldData, role *sshRole, keySpecs *keySpecs) (*logical.Response, error) {

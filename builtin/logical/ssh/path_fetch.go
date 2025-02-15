@@ -31,10 +31,15 @@ func pathFetchPublicKey(b *backend) *framework.Path {
 }
 
 func (b *backend) pathFetchPublicKey(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	publicKeyEntry, err := caKey(ctx, req.Storage, caPublicKey)
-	if err != nil {
+	var publicKeyEntry *keyStorageEntry
+	if err := logical.WithTransaction(ctx, req.Storage, func(storage logical.Storage) error {
+		var err error
+		publicKeyEntry, err = caKey(ctx, storage, caPublicKey)
+		return err
+	}); err != nil {
 		return nil, err
 	}
+
 	if publicKeyEntry == nil || publicKeyEntry.Key == "" {
 		return nil, nil
 	}

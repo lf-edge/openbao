@@ -105,6 +105,12 @@ Read operations will return the public key, if already stored/generated.`,
 }
 
 func (b *backend) pathConfigCARead(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	publicKeyEntry, err := caKey(ctx, req.Storage, caPublicKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read CA public key: %w", err)
@@ -120,16 +126,26 @@ func (b *backend) pathConfigCARead(ctx context.Context, req *logical.Request, da
 		},
 	}
 
+	if err := logical.EndTxStorage(ctx, req); err != nil {
+		return nil, err
+	}
+
 	return response, nil
 }
 
 func (b *backend) pathConfigCADelete(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	if err := req.Storage.Delete(ctx, caPrivateKeyStoragePath); err != nil {
+	if err := logical.WithTransaction(ctx, req.Storage, func(storage logical.Storage) error {
+		if err := storage.Delete(ctx, caPrivateKeyStoragePath); err != nil {
+			return err
+		}
+		if err := storage.Delete(ctx, caPublicKeyStoragePath); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
 		return nil, err
 	}
-	if err := req.Storage.Delete(ctx, caPublicKeyStoragePath); err != nil {
-		return nil, err
-	}
+
 	return nil, nil
 }
 
@@ -186,7 +202,12 @@ func caKey(ctx context.Context, storage logical.Storage, keyType string) (*keySt
 }
 
 func (b *backend) pathConfigCAUpdate(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	var err error
+	txRollback, err := logical.StartTxStorage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer txRollback()
+
 	publicKey := data.Get("public_key").(string)
 	privateKey := data.Get("private_key").(string)
 
@@ -293,6 +314,10 @@ func (b *backend) pathConfigCAUpdate(ctx context.Context, req *logical.Request, 
 			return nil, mErr
 		}
 
+		return nil, err
+	}
+
+	if err := logical.EndTxStorage(ctx, req); err != nil {
 		return nil, err
 	}
 
