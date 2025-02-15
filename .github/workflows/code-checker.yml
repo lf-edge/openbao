@@ -22,6 +22,7 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           fetch-depth: 0
+          persist-credentials: false
       - uses: ./.github/actions/set-up-go
       - run: make ci-deprecations
         name: Check deprecations
@@ -34,6 +35,7 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           fetch-depth: 0
+          persist-credentials: false
       - uses: ./.github/actions/set-up-go
       - run: make vulncheck
         name: Check dependencies for vulnerabilities
@@ -46,6 +48,7 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           fetch-depth: 0
+          persist-credentials: false
       - uses: ./.github/actions/set-up-go
         # Note: if there is a function we want to ignore the nilnil check for,
         # You can add 'ignore-nil-nil-function-check' somewhere in the
@@ -58,6 +61,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:  
+          persist-credentials: false 
       - uses: ./.github/actions/set-up-go
       - name: Go format
         run: |
@@ -78,6 +83,8 @@ jobs:
     if: (github.actor != 'dependabot[bot]') && (github.event != 'merge_group')
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false 
       - name: Run Semgrep Rules
         id: semgrep
         run: semgrep ci --include '*.go' --config 'tools/semgrep/ci'

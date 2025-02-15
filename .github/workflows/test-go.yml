@@ -68,6 +68,7 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           ref: ${{ inputs.checkout-ref }}
+          persist-credentials: false
       - uses: ./.github/actions/set-up-go
         name: Setup Git configuration (public)
       - uses: ./.github/actions/set-up-gotestsum
@@ -82,15 +83,19 @@ jobs:
         run: ls -lhR test-results/go-test
       - name: Build matrix excluding binary, integration, and testonly tests
         id: build-non-binary
+        env:
+          INPUTS_TOTAL_RUNNERS: ${{ inputs.total-runners }}
         if: ${{ !inputs.testonly }}
         run: |
           # testonly tests need additional build tag though let's exclude them anyway for clarity
           (
             go list ./... github.com/openbao/openbao/api/v2/... github.com/openbao/openbao/sdk/v2/... | grep -v "_binary" | grep -v "vault/integ" | grep -v "testonly" | gotestsum tool ci-matrix --debug \
-              --partitions "${{ inputs.total-runners }}" \
+              --partitions "$INPUTS_TOTAL_RUNNERS" \
               --timing-files 'test-results/go-test/*.json' > matrix.json
           )
       - name: Build matrix for tests tagged with testonly
+        env:
+          INPUTS_TOTAL_RUNNERS: ${{ inputs.total-runners }}
         if: ${{ inputs.testonly }}
         run: |
           set -exo pipefail
@@ -100,7 +105,7 @@ jobs:
           # also running some extra tests for sanity checking with the testonly build tag
           (
             go list -tags=testonly ./vault/external_tests/{kv,token,*replication-perf*,*testonly*} ./vault/ | gotestsum tool ci-matrix --debug \
-              --partitions "${{ inputs.total-runners }}" \
+              --partitions "$INPUTS_TOTAL_RUNNERS" \
               --timing-files 'test-results/go-test/*.json' > matrix.json
           )
           # disable glob expansion
@@ -113,12 +118,15 @@ jobs:
           echo "list=$LIST" >> "$GITHUB_OUTPUT"
       - name: Build complete matrix
         id: build
+        env:
+          INPUTS_TOTAL_RUNNERS: ${{ inputs.total-runners }}
+          INPUTS_BINARY_TESTS: ${{ inputs.binary-tests }}
         run: |
           set -exo pipefail
           matrix_file="matrix.json"
-          if [ "${{ inputs.binary-tests}}" == "true" ] && [ -n "${{ steps.list-binary-tests.outputs.list }}" ]; then
+          if [ "$INPUTS_BINARY_TESTS" == "true" ] && [ -n "${{ steps.list-binary-tests.outputs.list }}" ]; then
             export BINARY_TESTS="${{ steps.list-binary-tests.outputs.list }}"
-            jq --arg BINARY "${BINARY_TESTS}" --arg BINARY_INDEX "${{ inputs.total-runners }}" \
+            jq --arg BINARY "${BINARY_TESTS}" --arg BINARY_INDEX "$INPUTS_TOTAL_RUNNERS" \
               '.include += [{
                 "id": $BINARY_INDEX,
                 "estimatedRuntime": "N/A",
@@ -156,6 +164,7 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           ref: ${{ inputs.checkout-ref }}
+          persist-credentials: false
       - uses: ./.github/actions/set-up-go
       - id: setup-git-public
         name: Setup Git configuration (public)
@@ -170,6 +179,10 @@ jobs:
         timeout-minutes: ${{ fromJSON(env.TIMEOUT_IN_MINUTES) }}
         env:
           COMMIT_SHA: ${{ github.sha }}
+          INPUTS_NAME: ${{ inputs.name }}
+          INPUTS_GO_ARCH: ${{ inputs.go-arch }}
+          INPUTS_EXTRA_FLAGS: ${{ inputs.extra-flags }}
+          INPUTS_GO_TAGS: ${{ inputs.go-tags }}
         run: |
           set -exo pipefail
 
@@ -191,24 +204,24 @@ jobs:
 
           # On a release branch, add a flag to rerun failed tests
           # shellcheck disable=SC2193 # can get false positive for this comparision
-          if [[  "${{ github.base_ref }}" == release/* ]] || [[  -z "${{ github.base_ref }}" && "${{ github.ref_name }}" == release/* ]]
+          if [[  "$GITHUB_BASE_REF" == release/* ]] || [[  -z "$GITHUB_BASE_REF" && "$GITHUB_REF_NAME" == release/* ]]
           then
            RERUN_FAILS="--rerun-fails"
           fi
 
           # shellcheck disable=SC2086 # can't quote RERUN_FAILS
-          GOARCH=${{ inputs.go-arch }} \
+          GOARCH=$INPUTS_GO_ARCH \
             gotestsum --format=short-verbose \
               --junitfile test-results/go-test/results-${{ matrix.id }}.xml \
               --jsonfile test-results/go-test/results-${{ matrix.id }}.json \
-              --jsonfile-timing-events failure-summary-${{ matrix.id }}${{ inputs.name != '' && '-' || '' }}${{ inputs.name }}.json \
+              --jsonfile-timing-events failure-summary-${{ matrix.id }}${{ inputs.name != '' && '-' || '' }}$INPUTS_NAME.json \
               $RERUN_FAILS \
               --packages "$packages" \
               -- \
-              -tags "${{ inputs.go-tags }}" \
+              -tags "$INPUTS_GO_TAGS" \
               -timeout=${{ env.TIMEOUT_IN_MINUTES }}m \
               -parallel=${{ inputs.go-test-parallelism }} \
-              ${{ inputs.extra-flags }} \
+              $INPUTS_EXTRA_FLAGS \
       - name: Archive test results
         uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
@@ -218,6 +231,8 @@ jobs:
       # GitHub Actions doesn't expose the job ID or the URL to the job execution,
       # so we have to fetch it from the API
       - name: Fetch job logs URL
+        env:
+          INPUTS_NAME: ${{ inputs.name }}
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         if: success() || failure()
         continue-on-error: true
@@ -239,7 +254,7 @@ jobs:
               // Determine what job name to use for the query. These values are hardcoded, because GHA doesn't
               // expose them in any of the contexts available within a workflow run.
               let prefixToSearchFor;
-              switch ("${{ inputs.name }}") {
+              switch ("$INPUTS_NAME") {
                 case "race":
                   prefixToSearchFor = 'Run Go tests with data race detection / test-go (${{ matrix.id }})'
                   break
@@ -267,6 +282,8 @@ jobs:
               return
             }
       - name: Prepare failure summary
+        env:
+          INPUTS_NAME: ${{ inputs.name }}
         if: success() || failure()
         continue-on-error: true
         run: |
@@ -276,9 +293,9 @@ jobs:
           # | github.com/openbao/openbao/package | TestName | fips | 0 | 2 | [view results](github.com/link-to-logs) |
           jq -r -n 'inputs
           | select(.Action == "fail")
-          | "| ${{inputs.name}} | \(.Package) | \(.Test // "-") | \(.Elapsed) | ${{ matrix.id }} | [view test results :scroll:](${{ env.GH_JOB_URL }}) |"' \
-          failure-summary-${{ matrix.id }}${{ inputs.name != '' && '-' || '' }}${{inputs.name}}.json \
-          >> failure-summary-${{ matrix.id }}${{ inputs.name != '' && '-' || '' }}${{inputs.name}}.md
+          | "| $INPUTS_NAME | \(.Package) | \(.Test // "-") | \(.Elapsed) | ${{ matrix.id }} | [view test results :scroll:](${{ env.GH_JOB_URL }}) |"' \
+          failure-summary-${{ matrix.id }}${{ inputs.name != '' && '-' || '' }}$INPUTS_NAMEjson \
+          >> failure-summary-${{ matrix.id }}${{ inputs.name != '' && '-' || '' }}$INPUTS_NAME.md
       - name: Upload failure summary
         uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         if: success() || failure()

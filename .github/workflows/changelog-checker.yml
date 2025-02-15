@@ -29,14 +29,10 @@ jobs:
           #
           # Try to identify the expected changelog file name based on PR
           # number. This won't work for Go version updates though.
-          if [ ${{ github.event.repository.name }} == "vault-enterprise" ]; then
-            expected_changelog_file=changelog/_${{ github.event.pull_request.number }}.txt
-          else
-            expected_changelog_file=changelog/${{ github.event.pull_request.number }}.txt
-          fi
+          expected_changelog_file=changelog/${{ github.event.pull_request.number }}.txt
 
           echo "looking for changelog file ${expected_changelog_file}"
-          changelog_files=$(git --no-pager diff --name-only HEAD "$(git merge-base HEAD "origin/${{ github.event.pull_request.base.ref }}")" -- ${expected_changelog_file})
+          changelog_files=$(git --no-pager diff --name-only HEAD "$(git merge-base HEAD "origin/${GITHUB_BASE_REF}")" -- ${expected_changelog_file})
 
           if [ -z "$changelog_files" ]; then
             echo "Not found."
@@ -44,7 +40,7 @@ jobs:
             # If we do not find a file matching the PR # in changelog/, we fail the check
             # unless we did a Go toolchain version update, in which case we check the
             # alternative name.
-            toolchain_files=$(git --no-pager diff --name-only HEAD "$(git merge-base HEAD "origin/${{ github.event.pull_request.base.ref }}")" -- 'changelog/_go-ver-*.txt')
+            toolchain_files=$(git --no-pager diff --name-only HEAD "$(git merge-base HEAD "origin/${GITHUB_BASE_REF}")" -- 'changelog/_go-ver-*.txt')
             if [ -z "$toolchain_files" ]; then
               echo "Not found."
               echo ""
